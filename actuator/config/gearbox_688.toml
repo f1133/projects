@@ -1,0 +1,90 @@
+# Cycloidal gearbox for one Juno joint node.
+#
+# PROPOSED, not yet in V2_SPEC.md. Two changes from config/gearbox.toml:
+#
+#   608ZZ -> 688ZZ (8 x 16 x 5)   bore Ø21.85 -> Ø15.85
+#   output PCD Ø30 -> Ø26
+#
+# As specified, three of the six output holes cut through the disc rim by
+# 0.75 mm, and no rotation of the hole pattern fixes it. The bolt circle has to
+# come in, and while the cam bearing is a 608 there is no PCD that clears both
+# the rim and the bore. A 688 frees it, and is 2 mm shorter as a bonus.
+# See docs/design-log.md.
+#
+# Everything else here reads this file and nothing else, so
+# `python -m gearbox report` says whether the spec's numbers close.
+
+[meta]
+name = "Juno cycloidal actuator v2 + 688 fix"
+revision = "0.2.0 — proposed fix, not yet in V2_SPEC.md"
+
+[motor]
+part = "2804 gimbal BLDC"
+driver = "SimpleFOC Mini (DRV8313)"
+# Juno's CLAUDE.md: "A 2804 gimbal motor makes 0.06 N.m". At the driver's
+# 2.5 A ceiling that is Kt = 0.024 N.m/A. Measure it -- every load scales here.
+kt_nm_per_a = 0.024
+peak_current_a = 2.5          # DRV8313 ceiling; the INA240A1 saturates at 2.75 A
+continuous_current_a = 1.5    # TODO: whatever the stator thermistor allows
+max_speed_rpm = 1500.0        # TODO: measured on the 19 V bus
+
+[envelope]
+housing_od_mm = 48.0
+housing_wall_mm = 3.0        # actual is 3.5 at R19 + 1.5 pin; this is the minimum
+required_bore_radius_mm = 3.5  # shaft_bore = 7.0 in the SCAD, for the hollow shaft
+max_length_mm = 44.0         # the spec's Z stack
+
+[gearbox]
+# 16 ring pins -> 15 lobes -> 15:1, output counter-rotating.
+pin_circle_radius_mm = 19.0
+n_ring_pins = 16
+ring_pin_radius_mm = 1.5      # Ø3.0 hard dowel; baked into the profile equation
+eccentricity_mm = 0.80        # v2 change from 1.00; K 0.842 -> 0.674
+disc_thickness_mm = 7.0       # = 608ZZ width
+n_discs = 1                   # v2 change from 2
+profile_offset_mm = 0.20      # v2 prints at the loose end and tunes with the ring clamp
+center_bore_radius_mm = 7.925   # Ø15.85 printed, 688ZZ OD 16 with 0.15 interference
+
+[output]
+n_pins = 6
+phase_deg = 6.0                 # holes sit a quarter-pitch off the lobe roots instead of on them
+pin_radius_mm = 1.5           # Ø3.0 dowel
+bolt_circle_radius_mm = 12.25   # Ø24.5 PCD; balances the web to the rim against the web to the bore
+# Hole radius is pin + eccentricity = 2.30, i.e. Ø4.60 = Ø3.0 + 2e. That is the
+# room the orbit needs, not clearance -- opening it up goes straight to backlash.
+
+[duty]
+efficiency = 0.75             # the spec's assumption; measure once built
+safety_factor = 1.5           # for shock; the motor itself cannot exceed stall
+target_output_torque_nm = 0.68
+
+# A printed disc is judged on first yield, not on tensile strength: a Hertzian
+# contact is triaxially confined and does not yield until the peak pressure is
+# about 1.67x sigma_y. See docs/design-log.md.
+[materials.disc]
+name = "printed PLA+"
+youngs_modulus_mpa = 3500.0
+poisson_ratio = 0.36
+yield_strength_mpa = 55.0     # softens at 55-60 C, which is also the stator's range
+
+[materials.ring_pin]
+name = "Ø3 hard dowel, steel"
+youngs_modulus_mpa = 200000.0
+poisson_ratio = 0.29
+allowable_contact_stress_mpa = 1500.0
+
+[materials.output_pin]
+name = "Ø3 hard dowel, steel"
+youngs_modulus_mpa = 200000.0
+poisson_ratio = 0.29
+allowable_contact_stress_mpa = 1500.0
+
+# Thresholds this design is judged by, where the defaults do not fit it.
+[limits]
+# The default 45 deg is a general rule of thumb. Juno picked K = 0.674 to match
+# two builds known to print and work, and 46.3 deg is the consequence of that
+# choice rather than an oversight. Raising K would trade it for undercut margin.
+max_pressure_angle_deg = 50.0
+# The spec's stated 0.68 N.m and its own 0.06 x 15 x 0.75 = 0.675 are the same
+# number rounded differently, which is not a 0.7% shortfall worth failing on.
+min_torque_margin = 0.99

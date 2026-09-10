@@ -211,9 +211,7 @@ def output_pin_loads(
     torque = design.design_torque_nm if torque_nm is None else torque_nm
     torque_nmm = torque * MM_PER_M / geom.n_discs
 
-    angles = [
-        2 * math.pi * j / out.n_pins - crank_angle_rad for j in range(out.n_pins)
-    ]
+    angles = [a - crank_angle_rad for a in out.hole_angles_rad()]
     arms = [out.bolt_circle_radius_mm * math.sin(a) for a in angles]
     forces = _share_load(arms, torque_nmm)
 

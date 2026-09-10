@@ -180,9 +180,26 @@ class OutputCoupling:
     n_pins: int
     pin_radius_mm: float
     bolt_circle_radius_mm: float
+    phase_deg: float = 0.0
+    """Rotation of the hole pattern relative to the lobes.
+
+    Free to choose, and worth choosing: the profile has a lobe root at 0
+    degrees, so at phase 0 a hole may sit right over one. Where the hole and
+    lobe counts share a factor this cannot be avoided entirely, but the phase
+    still decides how bad the worst hole is.
+    """
 
     def hole_radius_mm(self, eccentricity_mm: float) -> float:
         return self.pin_radius_mm + eccentricity_mm
+
+    def hole_angles_rad(self) -> list[float]:
+        """Angular position of every output hole, phase included."""
+        import math
+
+        return [
+            2 * math.pi * j / self.n_pins + math.radians(self.phase_deg)
+            for j in range(self.n_pins)
+        ]
 
 
 @dataclass(frozen=True)
@@ -226,6 +243,8 @@ class Design:
     envelope: Envelope
     duty: Duty
     materials: dict[str, Material] = field(default_factory=dict)
+    limits: dict[str, float] = field(default_factory=dict)
+    """Threshold overrides from the design file, applied over the defaults."""
 
     @property
     def peak_output_torque_nm(self) -> float:
@@ -333,6 +352,7 @@ def from_dict(raw: dict[str, Any]) -> Design:
             bolt_circle_radius_mm=float(
                 _require(out_t, "bolt_circle_radius_mm", "output")
             ),
+            phase_deg=float(out_t.get("phase_deg", 0.0)),
         ),
         envelope=Envelope(
             housing_od_mm=float(_require(env_t, "housing_od_mm", "envelope")),
@@ -353,6 +373,7 @@ def from_dict(raw: dict[str, Any]) -> Design:
             key: _material(value, f"materials.{key}")
             for key, value in mats_t.items()
         },
+        limits={k: float(v) for k, v in raw.get("limits", {}).items()},
     )
     _validate(design)
     return design

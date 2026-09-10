@@ -250,3 +250,38 @@ def test_moving_the_bolt_circle_in_does_open_the_web(raw):
     roomy = build(raw, output={"bolt_circle_radius_mm": 13.0})
     assert report.clearances(tight).hole_to_profile_mm < 0
     assert report.clearances(roomy).hole_to_profile_mm > 1.0
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["-c", "nope.toml", "report"],
+        ["report", "-c", "nope.toml"],
+    ],
+)
+def test_config_flag_works_on_either_side_of_the_subcommand(argv):
+    """Both orders read naturally, so both have to reach the same file.
+
+    A subparser default would be applied after the top-level flag is parsed and
+    silently overwrite it, which is why the shared option suppresses its own.
+    """
+    with pytest.raises(SystemExit, match="no design file"):
+        cli.main(argv)
+
+
+def test_limits_can_be_overridden_per_design(raw):
+    edited = deepcopy(raw)
+    edited["limits"] = {"max_pressure_angle_deg": 90.0}
+    design = config.from_dict(edited)
+    assert report.limits_from(design).max_pressure_angle_deg == 90.0
+    angle = next(
+        c for c in report.checks(design) if c.name == "pressure angle at peak load"
+    )
+    assert angle.ok
+
+
+def test_a_typo_in_limits_is_an_error_not_a_silent_no_op(raw):
+    edited = deepcopy(raw)
+    edited["limits"] = {"max_presure_angle_deg": 90.0}
+    with pytest.raises(config.ConfigError, match="unknown key in .limits."):
+        report.checks(config.from_dict(edited))

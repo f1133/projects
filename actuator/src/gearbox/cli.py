@@ -37,11 +37,11 @@ def _output_holes(design: config.Design) -> list[tuple[float, float, float]]:
     hole_r = out.hole_radius_mm(design.geometry.eccentricity_mm)
     return [
         (
-            out.bolt_circle_radius_mm * math.cos(2 * math.pi * j / out.n_pins),
-            out.bolt_circle_radius_mm * math.sin(2 * math.pi * j / out.n_pins),
+            out.bolt_circle_radius_mm * math.cos(angle),
+            out.bolt_circle_radius_mm * math.sin(angle),
             hole_r,
         )
-        for j in range(out.n_pins)
+        for angle in out.hole_angles_rad()
     ]
 
 
@@ -195,33 +195,52 @@ def _bom_command(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        prog="gearbox", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    # -c is accepted on either side of the subcommand: "gearbox -c x report" and
+    # "gearbox report -c x" both read naturally, and guessing wrong is a usage
+    # error rather than something argparse can recover from.
+    # -c is declared once and shared, so it works on either side of the
+    # subcommand. Two argparse details make that fiddly, and both bite quietly:
+    # a subparser's default is applied after the top-level flag is parsed and
+    # would overwrite it, and `parents=` shares the action *object*, so
+    # set_defaults on this parser would rewrite the subparser's default too.
+    # Suppressing the default in both places and resolving it below avoids each.
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument(
+        "-c", "--config", default=argparse.SUPPRESS,
+        help=f"design TOML (default: {DEFAULT_CONFIG})",
     )
-    parser.add_argument(
-        "-c", "--config", default=str(DEFAULT_CONFIG), help="design TOML"
+
+    parser = argparse.ArgumentParser(
+        prog="gearbox",
+        description=__doc__,
+        parents=[common],
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("report", help="full design report").set_defaults(
-        func=_report_command
-    )
-    sub.add_parser("check", help="checks only; non-zero exit on failure").set_defaults(
-        func=_check_command
-    )
+    sub.add_parser(
+        "report", help="full design report", parents=[common]
+    ).set_defaults(func=_report_command)
+    sub.add_parser(
+        "check", help="checks only; non-zero exit on failure", parents=[common]
+    ).set_defaults(func=_check_command)
 
-    prof = sub.add_parser("profile", help="export the disc profile")
+    prof = sub.add_parser("profile", help="export the disc profile", parents=[common])
     prof.add_argument("-o", "--out", default="out/disc.csv", help=".csv, .svg or .dxf")
     prof.add_argument(
         "-n", "--samples", type=int, default=120, help="points per lobe"
     )
     prof.set_defaults(func=_profile_command)
 
-    bom_parser = sub.add_parser("bom", help="render the mechanical BOM")
+    bom_parser = sub.add_parser(
+        "bom", help="render the mechanical BOM", parents=[common]
+    )
     bom_parser.add_argument("-b", "--bom", default=str(DEFAULT_BOM))
     bom_parser.set_defaults(func=_bom_command)
 
     args = parser.parse_args(argv)
+    if not hasattr(args, "config"):
+        args.config = str(DEFAULT_CONFIG)
     return args.func(args)
 
 

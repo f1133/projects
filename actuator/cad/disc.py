@@ -73,8 +73,7 @@ def disc_solid(design: config.Design, profile_index_deg: float = 0.0, samples: i
     disc -= Cylinder(radius=geom.center_bore_radius_mm, height=through)
 
     hole_r = out.hole_radius_mm(geom.eccentricity_mm)
-    for j in range(out.n_pins):
-        angle = 2 * math.pi * j / out.n_pins
+    for angle in out.hole_angles_rad():
         disc -= Pos(
             out.bolt_circle_radius_mm * math.cos(angle),
             out.bolt_circle_radius_mm * math.sin(angle),

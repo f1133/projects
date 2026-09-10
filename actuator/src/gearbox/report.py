@@ -8,10 +8,10 @@ that something is wrong.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 from . import cycloid, loads
-from .config import Design
+from .config import ConfigError, Design
 
 
 @dataclass(frozen=True)
@@ -35,6 +35,26 @@ class Limits:
 
     end_plate_allowance_mm: float = 8.0
     """Axial space for housing plates and bearings on top of the disc stack."""
+
+
+def limits_from(design: Design) -> Limits:
+    """Read a design's own thresholds, falling back to the defaults.
+
+    Defaults are general rules of thumb, and a project that has a better reason
+    should be able to say so in one place rather than arguing with the tool.
+    Every override belongs next to its reason in the TOML.
+    """
+    if not design.limits:
+        return Limits()
+    known = {f.name for f in fields(Limits)}
+    unknown = set(design.limits) - known
+    if unknown:
+        raise ConfigError(
+            "unknown key in [limits]: "
+            + ", ".join(sorted(unknown))
+            + f"; known keys are {', '.join(sorted(known))}"
+        )
+    return Limits(**design.limits)
 
 
 @dataclass(frozen=True)
@@ -89,8 +109,7 @@ def _least_web_mm(design: Design, phase_rad: float, profile: list[tuple[float, f
     out = design.output
     hole_r = out.hole_radius_mm(design.geometry.eccentricity_mm)
     least = math.inf
-    for j in range(out.n_pins):
-        angle = 2 * math.pi * j / out.n_pins + phase_rad
+    for angle in [a + phase_rad for a in out.hole_angles_rad()]:
         cx = out.bolt_circle_radius_mm * math.cos(angle)
         cy = out.bolt_circle_radius_mm * math.sin(angle)
         nearest = min(math.hypot(px - cx, py - cy) for px, py in profile)
@@ -113,7 +132,8 @@ def _best_hole_phase(design: Design, samples: int = 61) -> tuple[float, float]:
         web = _least_web_mm(design, phase, profile)
         if web > best_web:
             best_phase, best_web = phase, web
-    return math.degrees(best_phase), best_web
+    # Reported as an absolute phase, not a correction to the current one.
+    return math.degrees(best_phase) + design.output.phase_deg, best_web
 
 
 def clearances(design: Design) -> Clearances:
@@ -150,7 +170,7 @@ def checks(
     the contact figures computed on one are meaningless, so a reader who stops
     at the first failure still stops at the right place.
     """
-    limits = limits or Limits()
+    limits = limits or limits_from(design)
     worst = worst or loads.worst_case(design)
     geom = design.geometry
     gaps = clearances(design)
@@ -306,7 +326,7 @@ def checks(
 
 def render(design: Design, limits: Limits | None = None) -> str:
     """Full design report as plain text."""
-    limits = limits or Limits()
+    limits = limits or limits_from(design)
     geom = design.geometry
     out = design.output
     worst = loads.worst_case(design)
