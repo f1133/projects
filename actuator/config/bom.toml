@@ -1,0 +1,91 @@
+# Mechanical bill of materials for one Juno cycloidal actuator, v2.
+#
+# Transcribed from 03_mechanical/V2_SPEC.md. The spec is upstream; if the two
+# disagree the spec wins. Juno's electronics BOM (CAN joint node, rev 14)
+# carries no mechanical lines at all, which is why this file exists.
+# Quantities are per actuator; `python -m gearbox bom` multiplies by the count.
+
+[meta]
+gearboxes = 3   # one per joint node
+
+[[part]]
+ref = "DISC"
+description = "Cycloidal disc, 15 lobes, 7 mm"
+qty_per_gearbox = 1
+source = "printed PLA+"
+note = "Print flat, 5 walls, 100% top/bottom -- this is the load path"
+
+[[part]]
+ref = "HOUSING"
+description = "Split ring housing, Ø48, 16 pin holes, M3 tangential clamp"
+qty_per_gearbox = 1
+source = "printed"
+note = "Untested: nobody has printed this split ring yet. Try one before committing"
+
+[[part]]
+ref = "CAM"
+description = "Eccentric cam, 0.80 offset, on the rotor"
+qty_per_gearbox = 1
+source = "printed"
+note = "100% infill in the journals -- a loose cam is failure #1. Gated on measuring a 2804"
+
+[[part]]
+ref = "OUTPLATE"
+description = "Output plate Ø37 x 3, carries the 6 output pins"
+qty_per_gearbox = 1
+source = "printed"
+
+[[part]]
+ref = "CAP"
+description = "Cap Ø48, 6804 seat Ø31.85 x 7"
+qty_per_gearbox = 1
+source = "printed"
+
+[[part]]
+ref = "BRG-CAM"
+description = "608ZZ 8 x 22 x 7, cam journal"
+qty_per_gearbox = 1
+source = "have (16)"
+have = true
+note = "Pressed in the disc at Ø21.85. Carries ~138 N -- the most loaded bearing here"
+
+[[part]]
+ref = "BRG-OUT"
+description = "6804ZZ 20 x 32 x 7, output"
+qty_per_gearbox = 1
+source = "have (6, Omrook 32296)"
+have = true
+note = "Press on the inner race from the plate boss, outer race from the cap. Never through the balls"
+
+[[part]]
+ref = "PIN-RING"
+description = "Dowel 3 x 16 hardened, ring pins"
+qty_per_gearbox = 16
+source = "ordered"
+note = "3 x 12 would also do: a ring pin only spans the disc plus engagement"
+
+[[part]]
+ref = "PIN-OUT"
+description = "Dowel 3 x 12 hardened, output pins"
+qty_per_gearbox = 6
+source = "ordered"
+
+[[part]]
+ref = "M3-CAP"
+description = "M3 x 10 socket + heat-set insert, cap to housing"
+qty_per_gearbox = 4
+source = "ordered"
+
+[[part]]
+ref = "M3-CLAMP"
+description = "M3 x 16, ring clamp"
+qty_per_gearbox = 1
+source = "ordered"
+note = "One sixth of a turn = 26 um of clearance. This replaces the reprint loop"
+
+[[part]]
+ref = "M2-CAM"
+description = "M2 or M2.5 x 6, cam to rotor"
+qty_per_gearbox = 4
+source = "TODO"
+note = "Size unknown until a real 2804 is measured -- buy both"

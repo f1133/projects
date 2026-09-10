@@ -1,0 +1,74 @@
+# Cycloidal gearbox for one Juno joint node.
+#
+# This is the v2 geometry from Juno's 03_mechanical/V2_SPEC.md, transcribed so
+# the checks run against the design that will actually be printed. It is not an
+# independent design: the spec is upstream, this file is downstream, and if the
+# two disagree the spec wins until someone reconciles them.
+#
+# Everything else here reads this file and nothing else, so
+# `python -m gearbox report` says whether the spec's numbers close.
+
+[meta]
+name = "Juno cycloidal actuator v2"
+revision = "0.2.0 — transcribed from V2_SPEC.md"
+
+[motor]
+part = "2804 gimbal BLDC"
+driver = "SimpleFOC Mini (DRV8313)"
+# Juno's CLAUDE.md: "A 2804 gimbal motor makes 0.06 N.m". At the driver's
+# 2.5 A ceiling that is Kt = 0.024 N.m/A. Measure it -- every load scales here.
+kt_nm_per_a = 0.024
+peak_current_a = 2.5          # DRV8313 ceiling; the INA240A1 saturates at 2.75 A
+continuous_current_a = 1.5    # TODO: whatever the stator thermistor allows
+max_speed_rpm = 1500.0        # TODO: measured on the 19 V bus
+
+[envelope]
+housing_od_mm = 48.0
+housing_wall_mm = 3.0        # actual is 3.5 at R19 + 1.5 pin; this is the minimum
+required_bore_radius_mm = 3.5  # shaft_bore = 7.0 in the SCAD, for the hollow shaft
+max_length_mm = 44.0         # the spec's Z stack
+
+[gearbox]
+# 16 ring pins -> 15 lobes -> 15:1, output counter-rotating.
+pin_circle_radius_mm = 19.0
+n_ring_pins = 16
+ring_pin_radius_mm = 1.5      # Ø3.0 hard dowel; baked into the profile equation
+eccentricity_mm = 0.80        # v2 change from 1.00; K 0.842 -> 0.674
+disc_thickness_mm = 7.0       # = 608ZZ width
+n_discs = 1                   # v2 change from 2
+profile_offset_mm = 0.15      # SCAD disc_clr; v2 prints loose and tunes the ring
+center_bore_radius_mm = 10.925  # Ø21.85 printed, 608ZZ OD 22 with 0.15 interference
+
+[output]
+n_pins = 6
+pin_radius_mm = 1.5           # Ø3.0 dowel
+boss_radius_mm = 10.025       # Ø20.05 press boss for the 6804ZZ output bearing
+bolt_circle_radius_mm = 15.0  # Ø30 PCD
+# Hole radius is pin + eccentricity = 2.30, i.e. Ø4.60 = Ø3.0 + 2e. That is the
+# room the orbit needs, not clearance -- opening it up goes straight to backlash.
+
+[duty]
+efficiency = 0.75             # the spec's assumption; measure once built
+safety_factor = 1.5           # for shock; the motor itself cannot exceed stall
+target_output_torque_nm = 0.68
+
+# A printed disc is judged on first yield, not on tensile strength: a Hertzian
+# contact is triaxially confined and does not yield until the peak pressure is
+# about 1.67x sigma_y. See docs/design-log.md.
+[materials.disc]
+name = "printed PLA+"
+youngs_modulus_mpa = 3500.0
+poisson_ratio = 0.36
+yield_strength_mpa = 55.0     # softens at 55-60 C, which is also the stator's range
+
+[materials.ring_pin]
+name = "Ø3 hard dowel, steel"
+youngs_modulus_mpa = 200000.0
+poisson_ratio = 0.29
+allowable_contact_stress_mpa = 1500.0
+
+[materials.output_pin]
+name = "Ø3 hard dowel, steel"
+youngs_modulus_mpa = 200000.0
+poisson_ratio = 0.29
+allowable_contact_stress_mpa = 1500.0
