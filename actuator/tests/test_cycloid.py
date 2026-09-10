@@ -27,6 +27,18 @@ def make_geom(**overrides) -> Geometry:
     return Geometry(**base)
 
 
+@pytest.fixture()
+def geom() -> Geometry:
+    """Override conftest's fixture for the tests below.
+
+    These check the equations, not the committed design, so they use a fixed
+    geometry. Otherwise editing config/gearbox.toml breaks tests that have
+    nothing to do with it -- which is exactly what happened when the design was
+    re-pointed at the Juno v2 spec.
+    """
+    return make_geom()
+
+
 def test_reduction_is_the_lobe_count(geom):
     assert geom.n_lobes == geom.n_ring_pins - 1
     assert abs(geom.ratio) == geom.n_lobes
@@ -77,18 +89,18 @@ def test_profile_spans_the_expected_radii(geom):
     )
 
 
-def test_profile_offset_removes_material_uniformly(geom):
+def test_profile_offset_removes_material_uniformly():
+    """The offset moves the flank along its normal, not radially.
+
+    That is what makes it a fit allowance rather than a scale: every point
+    retreats by the same distance, so the lobes keep their shape.
+    """
     offset = 0.2
-    shrunk = make_geom(
-        pin_circle_radius_mm=geom.pin_circle_radius_mm,
-        n_ring_pins=geom.n_ring_pins,
-        ring_pin_radius_mm=geom.ring_pin_radius_mm,
-        eccentricity_mm=geom.eccentricity_mm,
-        profile_offset_mm=offset,
-    )
+    nominal = make_geom(profile_offset_mm=0.0)
+    shrunk = make_geom(profile_offset_mm=offset)
     for i in range(40):
         t = i * 0.07
-        x0, y0 = cycloid.profile_point(t, geom)
+        x0, y0 = cycloid.profile_point(t, nominal)
         x1, y1 = cycloid.profile_point(t, shrunk)
         assert math.dist((x0, y0), (x1, y1)) == pytest.approx(offset, abs=1e-9)
 
@@ -107,9 +119,10 @@ def test_undercut_limit_is_where_the_profile_stops_being_simple():
     assert not cycloid.is_simple(cycloid.profile(undercut, samples_per_lobe=200))
 
 
-def test_committed_design_does_not_undercut(geom):
-    assert cycloid.undercut_margin(geom) > 1.0
-    assert cycloid.is_simple(cycloid.profile(geom, samples_per_lobe=200))
+def test_committed_design_does_not_undercut(design):
+    committed = design.geometry
+    assert cycloid.undercut_margin(committed) > 1.0
+    assert cycloid.is_simple(cycloid.profile(committed, samples_per_lobe=200))
 
 
 def test_moment_arm_matches_closed_form(geom):
@@ -151,6 +164,36 @@ def test_pin_angle_maps_to_trochoid_parameter(geom):
         from_contact = math.hypot(c.point[0] - e, c.point[1])
         x, y = cycloid.profile_point(phi / geom.n_lobes, geom)
         assert from_contact == pytest.approx(math.hypot(x, y), abs=1e-9)
+
+
+def test_profile_offset_is_exactly_the_backlash_gap():
+    """With an offset the pin no longer reaches the flank -- by exactly that much.
+
+    Measured along the normal, where the offset is defined. The radial gap is
+    smaller, by the cosine of the angle between the flank normal and the radius,
+    which is why this is measured from the pin centre rather than from the axis.
+
+    It leans on the base trochoid being the locus of pin centres in the disc's
+    own frame -- the same fact the Hertz calculation uses to find the local
+    flank curvature.
+    """
+    offset = 0.15
+    nominal = make_geom(profile_offset_mm=0.0)
+    shrunk = make_geom(profile_offset_mm=offset)
+
+    for i in range(24):
+        t = i * 0.09
+        # With no offset the pin sits exactly on the flank.
+        gap = math.dist(
+            cycloid.base_point(t, nominal), cycloid.profile_point(t, nominal)
+        ) - nominal.ring_pin_radius_mm
+        assert gap == pytest.approx(0.0, abs=1e-9)
+
+        # With one, it stands off by the offset and has to cross that first.
+        gap = math.dist(
+            cycloid.base_point(t, shrunk), cycloid.profile_point(t, shrunk)
+        ) - shrunk.ring_pin_radius_mm
+        assert gap == pytest.approx(offset, abs=1e-9)
 
 
 def test_contact_normal_passes_through_the_pitch_point(geom):

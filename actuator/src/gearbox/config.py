@@ -44,12 +44,55 @@ class Motor:
         return self.kt_nm_per_a * self.continuous_current_a
 
 
+# For a 2D line contact the greatest shear sits below the surface at
+# tau_max = 0.300 * p0, so by Tresca the first yield arrives at
+# p0 = sigma_y / (2 * 0.300). Johnson, Contact Mechanics, ch. 4.
+HERTZ_YIELD_FACTOR = 1.0 / (2 * 0.300)
+
+
 @dataclass(frozen=True)
 class Material:
+    """A material, and the criterion its contact stress is judged by.
+
+    The two criteria are not interchangeable, and picking the wrong one is an
+    easy way to be badly wrong in either direction:
+
+    ``allowable_contact_stress_mpa``
+        A surface-fatigue allowable, the usual way to rate steel gears. Give it
+        where such a figure exists; it already accounts for repeated loading.
+
+    ``yield_strength_mpa``
+        Used when no fatigue allowable exists, as for printed polymers. The
+        contact limit is *not* the yield strength: a Hertzian contact is
+        triaxially confined, so first yield does not arrive until the peak
+        pressure reaches about 1.67 times it. Comparing peak pressure straight
+        against tensile strength understates the capacity by that factor.
+    """
+
     name: str
     youngs_modulus_mpa: float
     poisson_ratio: float
-    allowable_contact_stress_mpa: float
+    allowable_contact_stress_mpa: float | None = None
+    yield_strength_mpa: float | None = None
+
+    @property
+    def contact_limit_mpa(self) -> float:
+        """Peak Hertzian pressure this material may see."""
+        if self.allowable_contact_stress_mpa is not None:
+            return self.allowable_contact_stress_mpa
+        if self.yield_strength_mpa is not None:
+            return HERTZ_YIELD_FACTOR * self.yield_strength_mpa
+        raise ConfigError(
+            f"material '{self.name}' gives neither allowable_contact_stress_mpa "
+            "nor yield_strength_mpa, so its contact stress cannot be judged"
+        )
+
+    @property
+    def contact_criterion(self) -> str:
+        """Which of the two limits is in play, for the report to name."""
+        if self.allowable_contact_stress_mpa is not None:
+            return "surface fatigue allowable"
+        return f"first yield, {HERTZ_YIELD_FACTOR:.2f} x sigma_y"
 
 
 @dataclass(frozen=True)
@@ -226,12 +269,21 @@ def _require(table: dict[str, Any], key: str, where: str) -> Any:
 
 
 def _material(table: dict[str, Any], where: str) -> Material:
+    allowable = table.get("allowable_contact_stress_mpa")
+    yield_strength = table.get("yield_strength_mpa")
+    if allowable is None and yield_strength is None:
+        raise ConfigError(
+            f"[{where}] needs allowable_contact_stress_mpa or yield_strength_mpa"
+        )
     return Material(
         name=str(_require(table, "name", where)),
         youngs_modulus_mpa=float(_require(table, "youngs_modulus_mpa", where)),
         poisson_ratio=float(_require(table, "poisson_ratio", where)),
-        allowable_contact_stress_mpa=float(
-            _require(table, "allowable_contact_stress_mpa", where)
+        allowable_contact_stress_mpa=(
+            None if allowable is None else float(allowable)
+        ),
+        yield_strength_mpa=(
+            None if yield_strength is None else float(yield_strength)
         ),
     )
 

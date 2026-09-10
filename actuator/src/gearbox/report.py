@@ -59,7 +59,23 @@ class Clearances:
     """Web between an output hole and the central eccentric-bearing bore."""
 
     hole_to_root_mm: float
-    """Web between an output hole and the deepest point of a lobe root."""
+    """Radial web between an output hole and the deepest point of a lobe root.
+
+    The conservative reading: it assumes some hole sits right over a root.
+    """
+
+    hole_to_profile_mm: float
+    """True least web from any output hole to the profile, at the drawn phase.
+
+    Whether a hole actually lands on a root depends on how the hole pattern and
+    the lobes line up, so this measures it rather than assuming it.
+    """
+
+    best_hole_phase_deg: float
+    """Rotation of the hole pattern that opens the tightest web furthest."""
+
+    best_hole_to_profile_mm: float
+    """The web at that phase -- how much rotating alone can buy."""
 
     ring_pin_gap_mm: float
     """Circumferential gap between neighbouring ring pins."""
@@ -68,15 +84,52 @@ class Clearances:
     """Circumferential gap between neighbouring output holes."""
 
 
+def _least_web_mm(design: Design, phase_rad: float, profile: list[tuple[float, float]]) -> float:
+    """Smallest gap between any output hole and the disc profile at one phase."""
+    out = design.output
+    hole_r = out.hole_radius_mm(design.geometry.eccentricity_mm)
+    least = math.inf
+    for j in range(out.n_pins):
+        angle = 2 * math.pi * j / out.n_pins + phase_rad
+        cx = out.bolt_circle_radius_mm * math.cos(angle)
+        cy = out.bolt_circle_radius_mm * math.sin(angle)
+        nearest = min(math.hypot(px - cx, py - cy) for px, py in profile)
+        least = min(least, nearest - hole_r)
+    return least
+
+
+def _best_hole_phase(design: Design, samples: int = 61) -> tuple[float, float]:
+    """Search one hole pitch for the phase that opens the tightest web most.
+
+    Rotating the pattern is free, so it is worth knowing before moving the bolt
+    circle. It does not always rescue a design: with ``gcd(n_pins, n_lobes) > 1``
+    the holes cannot all sit on lobe crests at once, whatever the phase.
+    """
+    profile = cycloid.profile(design.geometry, samples_per_lobe=200).points
+    pitch = 2 * math.pi / design.output.n_pins
+    best_phase, best_web = 0.0, -math.inf
+    for i in range(samples):
+        phase = pitch * i / samples
+        web = _least_web_mm(design, phase, profile)
+        if web > best_web:
+            best_phase, best_web = phase, web
+    return math.degrees(best_phase), best_web
+
+
 def clearances(design: Design) -> Clearances:
     geom = design.geometry
     out = design.output
     hole_r = out.hole_radius_mm(geom.eccentricity_mm)
+    profile = cycloid.profile(geom, samples_per_lobe=200).points
+    best_phase_deg, best_web = _best_hole_phase(design)
     return Clearances(
         hole_to_bore_mm=(out.bolt_circle_radius_mm - hole_r)
         - geom.center_bore_radius_mm,
         hole_to_root_mm=geom.disc_root_radius_mm
         - (out.bolt_circle_radius_mm + hole_r),
+        hole_to_profile_mm=_least_web_mm(design, 0.0, profile),
+        best_hole_phase_deg=best_phase_deg,
+        best_hole_to_profile_mm=best_web,
         ring_pin_gap_mm=2 * geom.pin_circle_radius_mm
         * math.sin(math.pi / geom.n_ring_pins)
         - 2 * geom.ring_pin_radius_mm,
@@ -103,11 +156,12 @@ def checks(
     gaps = clearances(design)
 
     margin = cycloid.undercut_margin(geom)
-    disc_allow = design.materials["disc"].allowable_contact_stress_mpa
-    pin_allow = design.materials["ring_pin"].allowable_contact_stress_mpa
-    out_allow = design.materials.get(
-        "output_pin", design.materials["ring_pin"]
-    ).allowable_contact_stress_mpa
+    disc_mat = design.materials["disc"]
+    pin_mat = design.materials["ring_pin"]
+    out_mat = design.materials.get("output_pin", pin_mat)
+    disc_allow = disc_mat.contact_limit_mpa
+    pin_allow = pin_mat.contact_limit_mpa
+    out_allow = out_mat.contact_limit_mpa
     torque_margin = (
         design.peak_output_torque_nm / design.duty.target_output_torque_nm
         if design.duty.target_output_torque_nm > 0
@@ -186,12 +240,17 @@ def checks(
             "",
         ),
         Check(
-            "web: hole to lobe root",
-            gaps.hole_to_root_mm,
+            "web: hole to disc profile",
+            gaps.hole_to_profile_mm,
             limits.min_web_mm,
             "mm",
-            gaps.hole_to_root_mm >= limits.min_web_mm,
-            "",
+            gaps.hole_to_profile_mm >= limits.min_web_mm,
+            (
+                ""
+                if gaps.hole_to_profile_mm >= limits.min_web_mm
+                else f"rotating the holes {gaps.best_hole_phase_deg:.1f} deg gets "
+                f"{gaps.best_hole_to_profile_mm:+.2f} mm"
+            ),
         ),
         Check(
             "pressure angle at peak load",
@@ -207,7 +266,7 @@ def checks(
             disc_allow,
             "MPa",
             worst.max_ring_contact_pressure_mpa <= disc_allow,
-            design.materials["disc"].name,
+            f"{disc_mat.name} -- {disc_mat.contact_criterion}",
         ),
         Check(
             "ring contact stress vs pin",
@@ -215,7 +274,7 @@ def checks(
             pin_allow,
             "MPa",
             worst.max_ring_contact_pressure_mpa <= pin_allow,
-            design.materials["ring_pin"].name,
+            f"{pin_mat.name} -- {pin_mat.contact_criterion}",
         ),
         Check(
             "output pin contact stress",
@@ -310,7 +369,10 @@ def render(design: Design, limits: Limits | None = None) -> str:
     add(f"  ring pin to ring pin         {gaps.ring_pin_gap_mm:.2f} mm")
     add(f"  hole to hole                 {gaps.output_hole_gap_mm:.2f} mm")
     add(f"  hole to centre bore          {gaps.hole_to_bore_mm:.2f} mm")
-    add(f"  hole to lobe root            {gaps.hole_to_root_mm:.2f} mm")
+    add(f"  hole to lobe root, radial    {gaps.hole_to_root_mm:.2f} mm")
+    add(f"  hole to profile, measured    {gaps.hole_to_profile_mm:.2f} mm"
+        f"   (best phase {gaps.best_hole_phase_deg:.1f} deg:"
+        f" {gaps.best_hole_to_profile_mm:+.2f} mm)")
 
     add("")
     add(f"LOADS  (per disc, at {design.design_torque_nm:.1f} N.m output)")

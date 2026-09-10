@@ -3,6 +3,9 @@
 What the gearbox has to do, and where each number came from. Anything still
 marked open is a placeholder in `config/gearbox.toml`, not a decision.
 
+> The upstream spec is Juno's `03_mechanical/V2_SPEC.md`. This document records
+> what that spec has to satisfy; where the two disagree, the spec wins.
+
 ## Context
 
 Three CAN joint nodes drive a desk robot arm. Each node is a self-contained
@@ -16,6 +19,7 @@ BOM implies for the mechanics, plus the gaps it leaves.
 | Requirement | Value | Source |
 |---|---|---|
 | Outside diameter | Ø48 mm | The 50 × 45 mm node board overhangs the gearbox by ~9.6 mm |
+| Motor torque | 0.06 N·m | 2804 gimbal at the driver's ceiling |
 | Peak phase current | 2.5 A | DRV8313 on the SimpleFOC Mini |
 | Current sense range | ±2.75 A | INA240A1 with a 30 mΩ shunt — saturates before the driver does |
 | Bus voltage | 19 V | 65 W laptop brick, fixed output |
@@ -30,28 +34,30 @@ for, the gearbox never sees more than 2.5 A of phase current, so peak torque is
 
 | Requirement | Value | Why |
 |---|---|---|
-| Architecture | single-stage cycloidal | 24:1 in one stage inside Ø48; tolerant of shock loads |
-| Reduction | 24:1 | 25 ring pins, 24 lobes |
-| Discs | 2, at 180° | cancels the orbiting imbalance, which a desk robot will otherwise transmit to the table |
-| Axial length | ≤ 30 mm | provisional, pending the joint stack-up |
+| Architecture | single-stage cycloidal | 15:1 in one stage inside Ø48; tolerant of shock loads |
+| Reduction | 15:1 | 16 ring pins, 15 lobes; 0.06 → 0.68 N·m |
+| Eccentricity | 0.80 mm | K = 0.674, matching two builds known to print and work |
+| Discs | 1 | half the moving parts, no indexing step, 51 → 44 mm |
+| Axial length | ≤ 44 mm | the spec's Z stack |
 
 ## Open
 
 These block a final design, not a first one. Each has a placeholder in the
 config so the tooling runs; none of the placeholders should be trusted.
 
-1. **The motor.** Not on the electronics BOM — it is owned but unrecorded. Its
-   torque constant sets every load in the gearbox, and the current placeholder
-   (`Kt = 0.05 N·m/A`) is a guess. Needed: part number, Kv, outside diameter,
-   shaft diameter and length.
-2. **Disc material.** Contact stress rules out every common filament at the
-   placeholder torque — see the design log. Whether the disc is printed or cut
-   depends on the real Kt.
-3. **Clear bore.** `required_bore_radius_mm = 3.5` is an estimate for the
-   wiring. The eccentric cam wall eats into the bearing bore, so the true clear
-   hole is smaller than the 9 mm bore radius the disc is drawn with.
-4. **Output bearing.** Not yet sized; waits on the output flange.
-5. **Duty cycle.** Continuous current is set by the stator thermistor, which is
+1. **The output holes break out of the disc** and this blocks printing. Three
+   of six holes cut through the rim by 0.75 mm at the drawn phase, and rotating
+   the pattern cannot fix it. See the design log for the 688ZZ remedy.
+2. **Kt is inferred, not measured.** Juno's `CLAUDE.md` gives 0.06 N·m for a
+   2804, which at the 2.5 A driver ceiling is `Kt = 0.024 N·m/A`. Every load
+   here scales with it. Confirm against the real motor.
+3. **Does the shaft protrude below the stator?** Juno's own first question, and
+   it decides whether the 17 mm board stack works at all. Not a gearbox
+   question, but it gates the whole actuator.
+4. **Cam screw pattern, M2 or M2.5.** Gates the cam and the housing.
+5. **Does the split ring flex 0.5 mm without cracking?** Untested. The tuning
+   procedure that replaces the reprint loop depends on it.
+6. **Duty cycle.** Continuous current is set by the stator thermistor, which is
    in the winding but has no calibration yet.
 
 ## Not requirements

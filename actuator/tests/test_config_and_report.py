@@ -52,8 +52,9 @@ def test_output_speed_is_input_over_ratio(design):
 
 
 def test_rejects_curtate_ratio_at_or_above_one(raw):
+    """K = 1 is the cusp limit: the profile collapses into self-intersection."""
     with pytest.raises(config.ConfigError, match="curtate ratio"):
-        build(raw, gearbox={"eccentricity_mm": 0.85})
+        build(raw, gearbox={"eccentricity_mm": 1.25})
 
 
 def test_rejects_ring_pins_that_would_overlap(raw):
@@ -119,7 +120,7 @@ def test_an_undercut_design_says_so_before_quoting_stress(raw):
     raised as well to bring the undercut limit down below the pin.
     """
     design = build(
-        raw, gearbox={"ring_pin_radius_mm": 2.4, "eccentricity_mm": 0.7}
+        raw, gearbox={"ring_pin_radius_mm": 2.5, "eccentricity_mm": 1.1}
     )
     results = report.checks(design)
     undercut = next(c for c in results if c.name == "undercut margin")
@@ -188,3 +189,64 @@ def test_exported_csv_is_the_profile(tmp_path, monkeypatch, design):
     assert len(points) == 40 * design.geometry.n_lobes
     radii = [math.hypot(x, y) for x, y in points]
     assert max(radii) == pytest.approx(design.geometry.disc_outer_radius_mm, abs=1e-6)
+
+
+def test_contact_limit_prefers_an_explicit_fatigue_allowable():
+    steel = config.Material("steel", 200000.0, 0.29, allowable_contact_stress_mpa=1100.0)
+    assert steel.contact_limit_mpa == 1100.0
+    assert "fatigue" in steel.contact_criterion
+
+
+def test_contact_limit_derives_first_yield_when_only_strength_is_known():
+    """A confined Hertzian contact carries well past uniaxial yield.
+
+    Comparing peak pressure straight against tensile strength is the mistake
+    this exists to prevent -- it understates a polymer's capacity by 1.67x.
+    """
+    pla = config.Material("PLA", 3500.0, 0.36, yield_strength_mpa=55.0)
+    assert pla.contact_limit_mpa == pytest.approx(1.6667 * 55.0, rel=1e-3)
+    assert pla.contact_limit_mpa > 55.0
+    assert "yield" in pla.contact_criterion
+
+
+def test_a_material_with_neither_limit_is_rejected(raw):
+    edited = deepcopy(raw)
+    edited["materials"]["disc"] = {
+        "name": "mystery",
+        "youngs_modulus_mpa": 3000.0,
+        "poisson_ratio": 0.35,
+    }
+    with pytest.raises(config.ConfigError, match="yield_strength_mpa"):
+        config.from_dict(edited)
+
+
+def test_web_check_measures_the_real_gap_not_just_the_radial_one(design):
+    """Whether a hole hits a lobe root depends on how the patterns line up.
+
+    The radial figure assumes the worst; this measures it. They agree only when
+    a hole really does sit over a root.
+    """
+    gaps = report.clearances(design)
+    assert gaps.hole_to_profile_mm >= gaps.hole_to_root_mm - 1e-9
+    assert gaps.best_hole_to_profile_mm >= gaps.hole_to_profile_mm - 1e-9
+
+
+def test_rotating_the_hole_pattern_cannot_always_rescue_it(design):
+    """With gcd(n_pins, n_lobes) > 1 the holes cannot all sit on crests.
+
+    The committed Juno v2 geometry is such a case: 6 holes against 15 lobes
+    share a factor of 3, so three holes always land on roots and no phase
+    lifts the tightest web above zero. The bolt circle has to move instead.
+    """
+    out, geom = design.output, design.geometry
+    assert math.gcd(out.n_pins, geom.n_lobes) > 1
+    gaps = report.clearances(design)
+    assert gaps.best_hole_to_profile_mm < 0
+
+
+def test_moving_the_bolt_circle_in_does_open_the_web(raw):
+    """The actual remedy, once rotation is exhausted."""
+    tight = build(raw, output={"bolt_circle_radius_mm": 15.0})
+    roomy = build(raw, output={"bolt_circle_radius_mm": 13.0})
+    assert report.clearances(tight).hole_to_profile_mm < 0
+    assert report.clearances(roomy).hole_to_profile_mm > 1.0

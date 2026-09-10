@@ -123,14 +123,20 @@ def test_hertz_declines_to_guess_at_conformal_contact():
 
 
 def test_flank_curvature_follows_the_offset_rule(design):
-    """rho_flank = -(rho_base + Rr): convex at the crests, concave in the roots."""
+    """rho_flank = -(rho_base + Rr): convex at the crests, concave in the roots.
+
+    The pin radius here is the effective one -- nominal plus
+    ``profile_offset_mm`` -- because removing material along the normal is
+    geometrically the same as fitting a fatter pin.
+    """
     from gearbox import cycloid
 
     geom = design.geometry
+    effective_pin = geom.ring_pin_radius_mm + geom.profile_offset_mm
     for phi in (0.2, 0.9, 1.7, 2.6):
         rho_base = cycloid.base_curvature_radius(phi / geom.n_lobes, geom)
         assert loads.profile_radius_mm(phi, design) == pytest.approx(
-            -(rho_base + geom.ring_pin_radius_mm)
+            -(rho_base + effective_pin)
         )
 
 
