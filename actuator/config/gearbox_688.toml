@@ -49,7 +49,8 @@ center_bore_radius_mm = 7.925   # Ø15.85 printed, 688ZZ OD 16 with 0.15 interfe
 n_pins = 6
 phase_deg = 6.0                 # holes sit a quarter-pitch off the lobe roots instead of on them
 pin_radius_mm = 1.5           # Ø3.0 dowel
-bolt_circle_radius_mm = 12.25   # Ø24.5 PCD; balances the web to the rim against the web to the bore
+boss_radius_mm = 10.025       # Ø20.05 press boss for the 6804ZZ output bearing
+bolt_circle_radius_mm = 13.0    # Ø26 PCD; balances the disc rim, the disc bore and the 6804 boss
 # Hole radius is pin + eccentricity = 2.30, i.e. Ø4.60 = Ø3.0 + 2e. That is the
 # room the orbit needs, not clearance -- opening it up goes straight to backlash.
 
@@ -88,3 +89,8 @@ max_pressure_angle_deg = 50.0
 # The spec's stated 0.68 N.m and its own 0.06 x 15 x 0.75 = 0.675 are the same
 # number rounded differently, which is not a 0.7% shortfall worth failing on.
 min_torque_margin = 0.99
+# The bolt circle is squeezed from both sides: the disc's rim pushes it in, the
+# 6804's boss on the output plate pushes it out. Ø26 is the best compromise and
+# leaves 1.44 mm at the tightest point. That carries the 41 N output pin load at
+# about 4 MPa, and is over three perimeters at a 0.4 mm nozzle.
+min_web_mm = 1.4

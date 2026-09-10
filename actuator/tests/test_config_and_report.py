@@ -285,3 +285,28 @@ def test_a_typo_in_limits_is_an_error_not_a_silent_no_op(raw):
     edited["limits"] = {"max_presure_angle_deg": 90.0}
     with pytest.raises(config.ConfigError, match="unknown key in .limits."):
         report.checks(config.from_dict(edited))
+
+
+def test_the_output_plate_boss_constrains_the_bolt_circle_from_inside(raw):
+    """The disc pushes the bolt circle in; the output bearing's boss pushes it out.
+
+    Both act on the same number from opposite directions, and the boss lives on
+    a part the disc analysis never looks at, which is how it gets forgotten.
+    """
+    edited = deepcopy(raw)
+    edited["output"]["boss_radius_mm"] = 10.025
+    edited["output"]["bolt_circle_radius_mm"] = 11.0  # pulled well in for the disc
+    design = config.from_dict(edited)
+    gaps = report.clearances(design)
+    # 11.0 - 1.5 pin - 10.025 boss = -0.525: the pin bore breaks into the boss.
+    assert gaps.pin_to_boss_mm == pytest.approx(-0.525)
+    boss = next(c for c in report.checks(design) if c.name == "web: output pin to boss")
+    assert not boss.ok
+
+
+def test_the_boss_check_is_skipped_when_no_boss_is_given(raw):
+    edited = deepcopy(raw)
+    edited["output"].pop("boss_radius_mm", None)
+    design = config.from_dict(edited)
+    assert report.clearances(design).pin_to_boss_mm is None
+    assert not any(c.name == "web: output pin to boss" for c in report.checks(design))

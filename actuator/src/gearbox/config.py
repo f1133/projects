@@ -180,6 +180,14 @@ class OutputCoupling:
     n_pins: int
     pin_radius_mm: float
     bolt_circle_radius_mm: float
+    boss_radius_mm: float | None = None
+    """Radius of the output bearing's press boss on the output plate.
+
+    The pins are anchored in the same plate, so this sets how far *in* the bolt
+    circle may come -- the opposite constraint to the disc, which wants it in.
+    Easy to miss, because it lives on a part the disc analysis never looks at.
+    """
+
     phase_deg: float = 0.0
     """Rotation of the hole pattern relative to the lobes.
 
@@ -351,6 +359,11 @@ def from_dict(raw: dict[str, Any]) -> Design:
             pin_radius_mm=float(_require(out_t, "pin_radius_mm", "output")),
             bolt_circle_radius_mm=float(
                 _require(out_t, "bolt_circle_radius_mm", "output")
+            ),
+            boss_radius_mm=(
+                None
+                if out_t.get("boss_radius_mm") is None
+                else float(out_t["boss_radius_mm"])
             ),
             phase_deg=float(out_t.get("phase_deg", 0.0)),
         ),

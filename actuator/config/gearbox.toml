@@ -42,6 +42,7 @@ center_bore_radius_mm = 10.925  # Ø21.85 printed, 608ZZ OD 22 with 0.15 interfe
 [output]
 n_pins = 6
 pin_radius_mm = 1.5           # Ø3.0 dowel
+boss_radius_mm = 10.025       # Ø20.05 press boss for the 6804ZZ output bearing
 bolt_circle_radius_mm = 15.0  # Ø30 PCD
 # Hole radius is pin + eccentricity = 2.30, i.e. Ø4.60 = Ø3.0 + 2e. That is the
 # room the orbit needs, not clearance -- opening it up goes straight to backlash.

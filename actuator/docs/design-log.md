@@ -3,6 +3,38 @@
 Newest first. Each entry records what changed and what the numbers said, so a
 decision can be re-argued later without re-deriving it.
 
+## 2026-09-10 — the output bearing constrains the bolt circle too
+
+Correcting the entry below. Its Ø24.5 bolt circle was picked by balancing two
+constraints that both live on the disc — the web to the rim and the web to the
+centre bore. There is a third, and it lives on a different part.
+
+The **6804ZZ output bearing presses onto a Ø20.05 boss on the output plate**,
+and the output pins are anchored in that same plate. So the boss pushes the bolt
+circle *outward* while the disc's rim pushes it *inward*. At Ø24.5 the wall
+between a pin bore and the boss is 0.72 mm — under two perimeters at a 0.4 mm
+nozzle, and not something to press a dowel into.
+
+Balancing all three:
+
+| PCD | disc rim | disc bore | plate: pin to boss |
+|---|---|---|---|
+| Ø24.5 | +2.15 | +2.02 | **+0.72** |
+| **Ø26.0** | **+1.44** | **+2.77** | **+1.47** |
+| Ø28.0 | +0.51 | +3.77 | +2.47 |
+
+**Ø26 at a 6° hole phase**, worst case 1.44 mm. That web carries the 41 N output
+pin load at about 4 MPa and is over three perimeters wide, so `min_web_mm` is
+set to 1.4 for this design with that reasoning recorded next to it.
+
+Ø2.5 output pins would buy 0.25 mm at every one of the three, but Ø3 × 12 dowels
+are already ordered and 1.44 mm is enough. The 688 is still needed regardless:
+at Ø26 a 608 leaves −0.23 mm to the disc's centre bore.
+
+`OutputCoupling` now takes `boss_radius_mm` and the checks include the plate
+wall, so this constraint cannot go missing again. It was missed the first time
+because every other check looks at the disc, and this one does not.
+
 ## 2026-09-10 — reconciled against the Juno starter pack
 
 The Juno pack arrived with a mature v2 gearbox spec

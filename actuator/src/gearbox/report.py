@@ -100,6 +100,15 @@ class Clearances:
     ring_pin_gap_mm: float
     """Circumferential gap between neighbouring ring pins."""
 
+    pin_to_boss_mm: float | None
+    """Wall in the output plate between a pin bore and the bearing boss.
+
+    ``None`` when the design does not say where the boss is. This is a
+    constraint on the output plate, not the disc, and it pushes the bolt circle
+    outward while the disc's rim pushes it in -- so it has to be checked with
+    the others rather than after them.
+    """
+
     output_hole_gap_mm: float
     """Circumferential gap between neighbouring output holes."""
 
@@ -150,6 +159,11 @@ def clearances(design: Design) -> Clearances:
         hole_to_profile_mm=_least_web_mm(design, 0.0, profile),
         best_hole_phase_deg=best_phase_deg,
         best_hole_to_profile_mm=best_web,
+        pin_to_boss_mm=(
+            None
+            if out.boss_radius_mm is None
+            else out.bolt_circle_radius_mm - out.pin_radius_mm - out.boss_radius_mm
+        ),
         ring_pin_gap_mm=2 * geom.pin_circle_radius_mm
         * math.sin(math.pi / geom.n_ring_pins)
         - 2 * geom.ring_pin_radius_mm,
@@ -272,6 +286,20 @@ def checks(
                 f"{gaps.best_hole_to_profile_mm:+.2f} mm"
             ),
         ),
+        *(
+            []
+            if gaps.pin_to_boss_mm is None
+            else [
+                Check(
+                    "web: output pin to boss",
+                    gaps.pin_to_boss_mm,
+                    limits.min_web_mm,
+                    "mm",
+                    gaps.pin_to_boss_mm >= limits.min_web_mm,
+                    "in the output plate, not the disc",
+                )
+            ]
+        ),
         Check(
             "pressure angle at peak load",
             angle_deg,
@@ -388,6 +416,9 @@ def render(design: Design, limits: Limits | None = None) -> str:
     add("CLEARANCES")
     add(f"  ring pin to ring pin         {gaps.ring_pin_gap_mm:.2f} mm")
     add(f"  hole to hole                 {gaps.output_hole_gap_mm:.2f} mm")
+    if gaps.pin_to_boss_mm is not None:
+        add(f"  output pin to bearing boss   {gaps.pin_to_boss_mm:.2f} mm"
+            "   (in the output plate)")
     add(f"  hole to centre bore          {gaps.hole_to_bore_mm:.2f} mm")
     add(f"  hole to lobe root, radial    {gaps.hole_to_root_mm:.2f} mm")
     add(f"  hole to profile, measured    {gaps.hole_to_profile_mm:.2f} mm"

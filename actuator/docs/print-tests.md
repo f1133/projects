@@ -59,8 +59,10 @@ into the wall.
 
 7 mm, full height, at the config's 0.20 mm clearance.
 
-**This is the corrected geometry, not the spec's.** It needs a 688ZZ rather
-than a 608ZZ, and an output plate with its pins on a Ø24.5 circle rotated 6°.
+**This is the corrected geometry, not the spec's.** It needs a 688ZZ as the cam
+bearing rather than a 608ZZ, and an output plate with its pins on a Ø26 circle
+rotated 6°. The 6804ZZ output bearing is unchanged — it is a different position,
+though its Ø20.05 boss is what sets Ø26 rather than anything tighter.
 Printing it against the existing plan will not fit. The spec's own disc cannot
 be printed as drawn — three of its six output holes cut through the rim. See
 the design log.

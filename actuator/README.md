@@ -45,10 +45,14 @@ pip install pytest && python -m pytest
 reach past the lobe roots, and three of them cut through the rim. 15 lobes
 against 6 holes share a factor of 3, so no rotation of the pattern fixes it —
 the best phase still leaves −0.35 mm. And while the cam bearing is a 608, no
-bolt circle clears both the rim and the Ø21.85 bore. A **688ZZ (8 × 16 × 5)**
-with the PCD at Ø26 clears both by 1.5 mm and 2.7 mm, and is 2 mm shorter.
-Keep the disc at 7 mm: at 5 mm the peak contact pressure rises from 61 to
-71 MPa.
+bolt circle clears both the rim and the Ø21.85 bore. A **688ZZ (8 × 16 × 5)** cam bearing
+with the PCD at Ø26 and the hole pattern rotated 6° clears everything by at
+least 1.44 mm. Keep the disc at 7 mm: at 5 mm the peak contact pressure rises
+from 61 to 71 MPa.
+
+The bolt circle is squeezed from both sides. The disc's rim pushes it in; the
+6804ZZ output bearing's Ø20.05 boss, on the output plate, pushes it out. Both
+have to be checked together — `config/gearbox_688.toml` passes all 15.
 
 The rest are soft. The pressure angle is 46.3° against a 45° rule of thumb, a
 consequence of choosing K = 0.674 to match builds known to print. The web to the
@@ -74,7 +78,7 @@ cad/disc.py             parametric solids, reads the same config
 docs/requirements.md    what it has to do, and what is still unknown
 docs/design-log.md      what was decided, with the numbers behind it
 docs/decisions/         why cycloidal, and not the alternatives
-tests/                  54 tests, mostly against closed forms
+tests/                  60 tests, mostly against closed forms
 ```
 
 ## How the design is checked
