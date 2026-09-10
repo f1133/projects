@@ -1,0 +1,74 @@
+# Mechanical bill of materials for the cycloidal gearbox.
+#
+# The project's electronics BOM (CAN joint node, rev 14) covers the node
+# boards and carries no mechanical lines at all, so this file is the only
+# record of what the gearbox itself needs. Quantities are per gearbox;
+# `python -m gearbox bom` multiplies them by the joint count.
+
+[meta]
+gearboxes = 3   # one per CAN joint node
+
+[[part]]
+ref = "DISC"
+description = "Cycloidal disc, 24 lobes"
+qty_per_gearbox = 2
+source = "printed / machined"
+note = "Contact stress rules out printed polymer at the current torque -- see docs/design-log.md"
+
+[[part]]
+ref = "PIN-RING"
+description = "Dowel pin 3 x 8 mm, hardened steel, ring"
+qty_per_gearbox = 25
+source = "TODO"
+note = "Ground dowels, not cut rod: the pin surface is a running contact"
+
+[[part]]
+ref = "PIN-OUT"
+description = "Dowel pin 3 x 20 mm, hardened steel, output"
+qty_per_gearbox = 6
+source = "TODO"
+
+[[part]]
+ref = "BRG-ECC"
+description = "Bearing 6701 (12 x 18 x 4), eccentric"
+qty_per_gearbox = 2
+source = "TODO"
+note = "One per disc; the most heavily loaded bearing in the gearbox"
+
+[[part]]
+ref = "BRG-OUT"
+description = "Output bearing, TODO: size once the output flange is drawn"
+qty_per_gearbox = 1
+source = "TODO"
+
+[[part]]
+ref = "CAM"
+description = "Eccentric cam, 0.6 mm offset, two lobes at 180 deg"
+qty_per_gearbox = 1
+source = "machined"
+note = "Bored through for the wiring; the two eccentrics must be one part to stay in phase"
+
+[[part]]
+ref = "HOUSING"
+description = "Ring housing, Ø48 outer, 25 pin bores"
+qty_per_gearbox = 1
+source = "printed"
+
+[[part]]
+ref = "FLANGE-OUT"
+description = "Output flange carrying the 6 output pins"
+qty_per_gearbox = 1
+source = "printed / machined"
+
+[[part]]
+ref = "MAGNET"
+description = "Diametric magnet for the AS5600, 6 x 2.5 mm"
+qty_per_gearbox = 1
+source = "TODO"
+note = "NOT on the electronics BOM. AS5600 boards often ship without one"
+
+[[part]]
+ref = "FASTENERS"
+description = "M3 socket cap screws, assorted lengths"
+qty_per_gearbox = 12
+source = "TODO"

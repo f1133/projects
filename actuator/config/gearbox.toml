@@ -1,0 +1,74 @@
+# Cycloidal gearbox for one CAN joint node.
+#
+# Everything downstream -- the checks, the CAD, the report -- reads this file
+# and nothing else. Change a number and `python -m gearbox report` says straight
+# away whether the design still closes.
+#
+# Constraints below come from the electronics BOM (CAN joint node, rev 14):
+# the gearbox has to fit Ø48, the DRV8313 on the SimpleFOC Mini caps phase
+# current at 2.5 A, the bus is 19 V, and wiring passes down the middle of the
+# joint. Values marked TODO are not yet known and are placeholders.
+
+[meta]
+name = "CAN joint node cycloidal stage"
+revision = "0.1.0-draft"
+
+[motor]
+part = "TODO: motor is owned but not on the BOM -- need part number, Kv, OD, shaft"
+driver = "SimpleFOC Mini (DRV8313)"
+# TODO: measure Kt. For a gimbal BLDC, Kt[N.m/A] ~= 8.27 / Kv[rpm/V].
+kt_nm_per_a = 0.05
+# Hard ceiling: the DRV8313 is a 2.5 A part and the INA240A1 + 30 mOhm shunt
+# saturates at 2.75 A, so the gearbox can never see more than this whatever
+# the motor is rated for.
+peak_current_a = 2.5
+continuous_current_a = 1.5   # TODO: whatever the stator thermistor allows
+max_speed_rpm = 3000.0       # TODO: measured on the 19 V bus
+
+[envelope]
+housing_od_mm = 48.0         # from the BOM: the 50 x 45 board overhangs Ø48 by ~9.6 mm
+housing_wall_mm = 2.5        # material outboard of the ring pins
+required_bore_radius_mm = 3.5  # TODO: confirm -- clear hole for 22 AWG power + 28 AWG signal
+max_length_mm = 30.0         # TODO: confirm against the joint stack-up
+
+[gearbox]
+# 25 ring pins -> 24 lobes -> 24:1, output counter-rotating.
+# Rp is set by the envelope: 48/2 - 2.5 wall - 1.5 pin = 20.0 mm.
+pin_circle_radius_mm = 20.0
+n_ring_pins = 25
+ring_pin_radius_mm = 1.5     # 3 mm dowel pins
+eccentricity_mm = 0.6        # K = e*Zp/Rp = 0.750; lower K pushes the pressure angle past 45 deg
+disc_thickness_mm = 6.0
+n_discs = 2                  # 180 deg apart, cancelling the orbiting imbalance
+profile_offset_mm = 0.0      # raise to remove material for printer fit or backlash
+center_bore_radius_mm = 9.0  # 6701 eccentric bearing, 12 x 18 x 4
+
+[output]
+n_pins = 6
+pin_radius_mm = 1.5          # 3 mm dowel pins
+bolt_circle_radius_mm = 13.7
+
+[duty]
+efficiency = 0.85            # TODO: measure once built; 0.80-0.90 is typical
+safety_factor = 1.5
+target_output_torque_nm = 2.0  # TODO: from the arm's reach and payload
+
+# The BOM's fab route is the owned printer, so a printed disc is the default.
+# Contact stress is what decides whether that survives -- see the report.
+[materials.disc]
+name = "TODO: printed PETG-CF (steel is the fallback)"
+youngs_modulus_mpa = 4500.0
+poisson_ratio = 0.40
+allowable_contact_stress_mpa = 60.0
+
+[materials.ring_pin]
+name = "3 mm dowel pin, hardened steel"
+youngs_modulus_mpa = 200000.0
+poisson_ratio = 0.29
+allowable_contact_stress_mpa = 1500.0
+
+[materials.output_pin]
+name = "3 mm dowel pin, hardened steel"
+youngs_modulus_mpa = 200000.0
+poisson_ratio = 0.29
+allowable_contact_stress_mpa = 1500.0

@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gearbox"
+version = "0.1.0"
+description = "Design and analysis of the cycloidal gearbox for the CAN joint actuator"
+requires-python = ">=3.11"   # tomllib
+dependencies = []            # the analysis is standard library only, on purpose
+
+[project.optional-dependencies]
+cad = ["build123d>=0.9"]
+dev = ["pytest>=8"]
+
+[project.scripts]
+gearbox = "gearbox.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
