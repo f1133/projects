@@ -20,8 +20,16 @@ cd projects
 ```
 projects/
 ├── README.md
-└── <project-name>/     # one directory per project
+├── hardware/
+│   └── g431-can-actuator/   # STM32G431 CAN-FD actuator node (KiCad)
+└── <project-name>/          # one directory per project
 ```
+
+## Projects
+
+| Project | Description |
+|---|---|
+| [`hardware/g431-can-actuator`](hardware/g431-can-actuator) | KiCad schematic for a CAN-FD BLDC actuator node: STM32G431CBT6 + DRV8311S three-phase driver, one board per actuator, daisy-chained on a single CAN bus. |
 
 ## License
 
