@@ -1,0 +1,24 @@
+qty,refs,value,footprint / mounting,note
+1,J1,12 V IN,terminal 2 pos 5.08 mm,"screw terminal, 5.08 mm pitch (sits on the 0.1 in grid)"
+1,F1,PTC 1.1 A,"radial PTC, 5 mm lead spacing",resettable fuse e.g. MF-R110 (or a 2 A fuse holder)
+1,D1,1N5822,"axial DO-201, 12.7 mm span","reverse-polarity protection, 3 A Schottky (SB540/SB560 ok)"
+1,C1,470u 25V,"radial 10 mm, 5 mm lead spacing",bulk cap for the motor driver (polymer or electrolytic)
+1,D2,1.5KE22CA,"axial DO-201, 12.7 mm span",bidirectional TVS across VM (optional on a bench supply)
+2,C2 C4,100n,"ceramic, 5.08 mm span",7805 input decoupling; 7805 output decoupling
+1,U2,L7805CV,TO-220 upright + clip-on heatsink,5 V for the ACS712s and the Black Pill; ~0.7 W -> small heatsink
+1,C3,100u 16V,"radial 8 mm, 3.5-5 mm lead spacing",7805 output cap (polymer ok)
+1,D3,1N5819,"axial DO-41, 10.16 mm span",5 V bus -> Black Pill 5V pin; keeps the 7805 from back-feeding a USB host
+1,R4,100k,"axial 1/4 W, 10.16 mm span","VBUS sense divider, top"
+1,R5,15k,"axial 1/4 W, 10.16 mm span","VBUS sense divider, bottom (12 V -> 1.57 V, 24 V -> 3.13 V)"
+1,U1,STM32F401CCU6,WeAct Black Pill V3.0 on 2x 1x20 female headers,USB-C DFU + SWD programmable; 3.3 V LDO on board
+1,U11,SimpleFOC Mini (M1),"SimpleFOC Mini v1.1, male pins down",DRV8313; plug into 1x6 + 1x5 + 1x3 female sockets or solder the pins directly
+1,J11,AS5600 M1,1x5 male header,to the encoder on the motor; DIR tied to GND on the board
+4,R22 R23 R24 R25,4k7,"axial 1/4 W, 10.16 mm span",I2C pull-up SCL (M1); I2C pull-up SDA (M1); I2C pull-up SCL (M2); I2C pull-up SDA (M2)
+1,J21,MOTOR 1,terminal 3 pos 5.08 mm,2804 gimbal motor phases
+12,TP1G TP1V TP1A TP1A2 TP1B TP1B2 TP2G TP2V TP2A TP2A2 TP2B TP2B2,,solder point,hookup wire up to the module's VIN- terminal; hookup wire up to the module's VIN+ terminal; hole for the phase lead into IP+; hole for the phase lead out of IP-
+4,U14 U15 U16 U17,ACS712-05B,ACS712 module on a 1x3 female socket,185 mV/A; needs 5 V; output centred at 2.5 V
+4,R34 R36 R38 R40,10k,"axial 1/4 W, 10.16 mm span",U14 OUT series resistor (divider top); U15 OUT series resistor (divider top); U16 OUT series resistor (divider top); U17 OUT series resistor (divider top)
+4,R35 R37 R39 R41,20k,"axial 1/4 W, 10.16 mm span",U14 divider bottom: 0-5 V -> 0-3.3 V for the ADC; U15 divider bottom: 0-5 V -> 0-3.3 V for the ADC; U16 divider bottom: 0-5 V -> 0-3.3 V for the ADC; U17 divider bottom: 0-5 V -> 0-3.3 V for the ADC
+1,U12,SimpleFOC Mini (M2),"SimpleFOC Mini v1.1, male pins down",DRV8313; plug into 1x6 + 1x5 + 1x3 female sockets or solder the pins directly
+1,J12,AS5600 M2,1x5 male header,to the encoder on the motor; DIR tied to GND on the board
+1,J22,MOTOR 2,terminal 3 pos 5.08 mm,2804 gimbal motor phases

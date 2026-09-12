@@ -1,0 +1,56 @@
+ref,value,footprint,"origin (col,row)",rotation,"pins (col,row)",note
+J1,12 V IN,terminal 2 pos 5.08 mm,"(3,4)",0,"+=(3,4) -=(5,4)","screw terminal, 5.08 mm pitch (sits on the 0.1 in grid)"
+F1,PTC 1.1 A,"radial PTC, 5 mm lead spacing","(8,4)",0,"1=(8,4) 2=(10,4)",resettable fuse e.g. MF-R110 (or a 2 A fuse holder)
+D1,1N5822,"axial DO-201, 12.7 mm span","(17,4)",180,"K=(17,4) A=(12,4)","reverse-polarity protection, 3 A Schottky (SB540/SB560 ok)"
+C1,470u 25V,"radial 10 mm, 5 mm lead spacing","(11,7)",90,"+=(11,7) -=(11,9)",bulk cap for the motor driver (polymer or electrolytic)
+D2,1.5KE22CA,"axial DO-201, 12.7 mm span","(14,8)",0,"K=(14,8) A=(19,8)",bidirectional TVS across VM (optional on a bench supply)
+C2,100n,"ceramic, 5.08 mm span","(21,7)",90,"1=(21,7) 2=(21,9)",7805 input decoupling
+U2,L7805CV,TO-220 upright + clip-on heatsink,"(23,7)",0,"IN=(23,7) GND=(24,7) OUT=(25,7)",5 V for the ACS712s and the 3.3 V regulator; ~0.7 W -> small heatsink
+C3,100u 16V,"radial 8 mm, 3.5-5 mm lead spacing","(28,7)",90,"+=(28,7) -=(28,9)",7805 output cap (polymer ok)
+C4,100n,"ceramic, 5.08 mm span","(31,7)",90,"1=(31,7) 2=(31,9)",7805 output decoupling
+R4,100k,"axial 1/4 W, 10.16 mm span","(3,11)",0,"1=(3,11) 2=(7,11)","VBUS sense divider, top"
+R5,15k,"axial 1/4 W, 10.16 mm span","(7,12)",0,"1=(7,12) 2=(11,12)","VBUS sense divider, bottom (12 V -> 1.57 V, 24 V -> 3.13 V)"
+U3,LD1117V33,TO-220 upright,"(21,10)",0,"GND=(21,10) OUT=(22,10) IN=(23,10)","3.3 V for MCU, encoder, CAN transceiver (~100 mA); AMS1117-3.3 module also fine"
+C5,10u 16V,"radial 6.3 mm, 2.5 mm lead spacing","(26,12)",270,"+=(26,12) -=(26,11)","LD1117 output cap (tantalum/polymer, ESR >= 0.3 ohm preferred)"
+U1,STM32G431CBT6,"LQFP48 -> DIP48 adapter, 12 pins/side, 13 holes between rows","(17,17)",90,"VBAT=(16,17) PC13=(15,17) PC14=(14,17) PC15=(13,17) PF0=(12,17) PF1=(11,17) NRST=(10,17) PA0=(9,17) PA1=(8,17) PA2=(7,17) PA3=(6,17) PA4=(5,17) PA5=(4,18) PA6=(4,19) PA7=(4,20) PB0=(4,21) PB1=(4,22) PB2=(4,23) VSSA=(4,24) VREF+=(4,25) VDDA=(4,26) PB10=(4,27) VSS=(4,28) VDD=(4,29) PB11=(5,30) PB12=(6,30) PB13=(7,30) PB14=(8,30) PB15=(9,30) PA8=(10,30) PA9=(11,30) PA10=(12,30) PA11=(13,30) PA12=(14,30) VSS=(15,30) VDD=(16,30) PA13=(17,29) PA14=(17,28) PA15=(17,27) PB3=(17,26) PB4=(17,25) PB5=(17,24) PB6=(17,23) PB7=(17,22) PB8=(17,21) PB9=(17,20) VSS=(17,19) VDD=(17,18)",0.5 mm pitch adapter board with 4x 1x12 male pin strips; check the pin-row spacing of yours
+C7,100n,"ceramic, 2.54 mm span","(3,25)",90,"1=(3,25) 2=(3,26)",VDD/VSS pins 23-24
+C8,100n,"ceramic, 2.54 mm span","(15,31)",0,"1=(15,31) 2=(16,31)",VDD/VSS pins 35-36
+C9,100n,"ceramic, 2.54 mm span","(18,17)",90,"1=(18,17) 2=(18,18)",VDD/VSS pins 47-48
+C11,1u,"ceramic, 5.08 mm span","(3,21)",90,"1=(3,21) 2=(3,23)",VDDA/VSSA (VREF+ tied to VDDA)
+Y1,8 MHz,"HC-49S crystal, 2 holes","(11,16)",0,"1=(11,16) 2=(12,16)",HSE for FDCAN bit timing
+C12,20p,"ceramic, 2.54 mm span","(12,14)",0,"1=(12,14) 2=(13,14)",crystal load (PF0)
+C13,20p,"ceramic, 2.54 mm span","(10,14)",0,"1=(10,14) 2=(11,14)",crystal load (PF1)
+C14,100n,"ceramic, 2.54 mm span","(7,16)",0,"1=(7,16) 2=(8,16)",NRST filter
+SW1,RESET,6x6 mm tactile switch,"(5,13)",0,"A1=(5,13) A2=(8,13) B1=(5,15) B2=(8,15)",momentary to GND
+SW2,ADDR,DIP switch 4 pos,"(16,16)",270,"1=(16,16) 2=(17,16) 3=(18,16) 4=(19,16) 4b=(19,13) 3b=(18,13) 2b=(17,13) 1b=(16,13)",node address bits to GND; use the MCU internal pull-ups
+D4,LED FAULT,5 mm / 3 mm LED,"(18,20)",0,"K=(18,20) A=(19,20)",active-low LED from 3.3 V (PB9)
+R7,1k,"axial 1/4 W, 10.16 mm span","(20,20)",0,"1=(20,20) 2=(24,20)",LED FAULT series
+JP1,BOOT0,1x2 pin header + jumper,"(21,21)",0,"1=(21,21) 2=(22,21)",fit the jumper to enter the system bootloader
+R6,10k,"axial 1/4 W, 10.16 mm span","(18,22)",0,"1=(18,22) 2=(22,22)",BOOT0 pull-down
+D5,LED RUN,5 mm / 3 mm LED,"(18,25)",0,"K=(18,25) A=(19,25)",active-low LED from 3.3 V (PB4)
+R8,1k,"axial 1/4 W, 10.16 mm span","(20,25)",0,"1=(20,25) 2=(24,25)",LED RUN series
+J4,SWD,1x5 male header,"(19,27)",0,"3V3=(19,27) SWDIO=(19,28) SWCLK=(19,29) NRST=(19,30) GND=(19,31)",ST-Link V2 programming / debug
+R9,4k7,"axial 1/4 W, 10.16 mm span","(21,27)",90,"1=(21,27) 2=(21,31)",I2C pull-up SCL
+R10,4k7,"axial 1/4 W, 10.16 mm span","(22,27)",90,"1=(22,27) 2=(22,31)",I2C pull-up SDA
+J5,AS5600,1x5 male header,"(19,32)",0,"3V3=(19,32) GND=(20,32) SCL=(21,32) SDA=(22,32) DIR=(23,32)",encoder on the motor; DIR tied to GND on the board
+J8,UART3,1x3 male header,"(6,32)",0,"TX=(6,32) RX=(7,32) GND=(8,32)",PB10/PB11 debug console (3.3 V levels)
+U4,SN65HVD230,SOIC-8 -> DIP-8 adapter,"(22,35)",0,"D=(22,35) GND=(22,36) VCC=(22,37) R=(22,38) Vref=(25,38) CANL=(25,37) CANH=(25,36) Rs=(25,35)",3.3 V CAN transceiver on a SOIC8->DIP8 adapter
+R11,0R (wire),"axial 1/4 W, 10.16 mm span","(26,35)",0,"1=(26,35) 2=(30,35)",Rs: 0 R = high-speed mode; 10k = slope control for <= 500 kbit/s
+JP2,TERM,1x2 pin header + jumper,"(28,36)",0,"1=(28,36) 2=(28,37)",fit the jumper on the two end nodes of the bus
+R12,120R,"axial 1/4 W, 10.16 mm span","(29,37)",0,"1=(29,37) 2=(33,37)",CAN termination
+JC1,CAN A,1x3 male header,"(36,32)",0,"CANH=(36,32) CANL=(36,33) GND=(36,34)",bus in
+JC2,CAN B,1x3 male header,"(36,36)",0,"CANH=(36,36) CANL=(36,37) GND=(36,38)",bus out (daisy chain)
+U11,SimpleFOC Mini,"SimpleFOC Mini v1.1, male pins down","(10,35)",0,"IN1=(10,35) IN2=(11,35) IN3=(12,35) EN=(13,35) GND=(14,35) GND=(15,35) nFT=(10,36) nSP=(11,36) nRT=(12,36) GND=(13,36) 3V3=(14,36) M1=(11,42) M2=(12,42) M3=(13,42)",DRV8313; plug into 1x6 + 1x5 + 1x3 female sockets or solder the pins directly
+TP1G,,solder point,"(19,36)",0,"1=(19,36)",hookup wire up to the module's VIN- terminal
+TP1V,,solder point,"(19,38)",0,"1=(19,38)",hookup wire up to the module's VIN+ terminal
+J21,MOTOR,terminal 3 pos 5.08 mm,"(36,42)",90,"A=(36,42) B=(36,44) C=(36,46)",2804 gimbal motor phases
+U14,ACS712-05B,ACS712 module on a 1x3 female socket,"(28,14)",0,"VCC=(28,14) OUT=(29,14) GND=(30,14)",185 mV/A; needs 5 V; output centred at 2.5 V
+R34,10k,"axial 1/4 W, 10.16 mm span","(27,12)",0,"1=(27,12) 2=(31,12)",U14 OUT series resistor (divider top)
+R35,20k,"axial 1/4 W, 10.16 mm span","(27,11)",0,"1=(27,11) 2=(31,11)",U14 divider bottom: 0-5 V -> 0-3.3 V for the ADC
+TP1A,,solder point,"(28,26)",0,"1=(28,26)",hole for the phase lead into IP+
+TP1A2,,solder point,"(30,26)",0,"1=(30,26)",hole for the phase lead out of IP-
+U15,ACS712-05B,ACS712 module on a 1x3 female socket,"(34,14)",0,"VCC=(34,14) OUT=(35,14) GND=(36,14)",185 mV/A; needs 5 V; output centred at 2.5 V
+R36,10k,"axial 1/4 W, 10.16 mm span","(33,12)",0,"1=(33,12) 2=(37,12)",U15 OUT series resistor (divider top)
+R37,20k,"axial 1/4 W, 10.16 mm span","(33,11)",0,"1=(33,11) 2=(37,11)",U15 divider bottom: 0-5 V -> 0-3.3 V for the ADC
+TP1B,,solder point,"(34,26)",0,"1=(34,26)",hole for the phase lead into IP+
+TP1B2,,solder point,"(36,26)",0,"1=(36,26)",hole for the phase lead out of IP-

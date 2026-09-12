@@ -6,7 +6,10 @@ and drives its motor locally; the boards daisy-chain on a single CAN bus and
 are addressed by a 4-bit DIP switch, so a chain of up to 16 actuators needs one
 bus cable rather than one motor harness per joint.
 
-Schematic only — there is no PCB layout yet.
+Schematic only — there is no PCB layout yet. Before the PCB is ordered the node
+is being built on perf board with modules; the plan, the three layouts (single
+motor on a Black Pill, dual motor, bare G431 + SN65HVD230 CAN) and their
+placement / wiring pictures live in [`proto/`](proto/README.md).
 
 ## Specification
 
