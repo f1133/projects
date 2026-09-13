@@ -42,13 +42,16 @@ def route(board, passes=20, timeout=3000):
     dst = os.path.join(ROOT, board + "-routed")
     os.makedirs(dst, exist_ok=True)
     for name in os.listdir(src):
-        s, d = os.path.join(src, name), os.path.join(dst, name)
+        s = os.path.join(src, name)
+        # files named after the project get the new project's name; the rest
+        # (lib tables, docs, the library folder) keep theirs
+        base = (board + "-routed" + name[len(board):]) if name.startswith(board) else name
+        d = os.path.join(dst, base)
         if os.path.isdir(s):
             shutil.rmtree(d, ignore_errors=True)
             shutil.copytree(s, d)
         elif name.endswith((".kicad_sch", ".kicad_pro", "-lib-table", ".md", ".svg")):
-            shutil.copy2(s, d.replace(board, board + "-routed")
-                         if name.startswith(board) else d)
+            shutil.copy2(s, d)
 
     pcb = os.path.join(src, f"{board}.kicad_pcb")
     dsn_path = os.path.join(dst, f"{board}.dsn")
