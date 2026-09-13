@@ -53,10 +53,12 @@ ACTUATOR_PARTS = [
     dict(ref="U6", value="AMS1117-3.3", lib="Regulator_Linear", sym="AMS1117-3.3",
          fp=("Package_TO_SOT_SMD", "SOT-223-3_TabPin2"),
          note="5 V from the CAN harness down to 3.3 V local."),
-    dict(ref="M1", value="SimpleFOC Mini", lib="juno", sym="SimpleFOC_Mini",
+    # Reference is A1, not M1: the module's own silkscreen calls its three
+    # motor pads M1/M2/M3, and ("M1", "M1") in a netlist helps nobody.
+    dict(ref="A1", value="SimpleFOC Mini v1.0", lib="juno", sym="SimpleFOC_Mini",
          fp=("juno", "SimpleFOC_Mini_Socket"),
-         note="Driver module on female headers. Geometry and pinout come from "
-              "the vendor's EasyEDA export; see CONFLICT-4."),
+         note="DRV8313 module on female headers. Geometry and pinout are read "
+              "from the vendor's EasyEDA exports; see CONFLICT-4."),
 
     # --- clock --------------------------------------------------------------
     dict(ref="Y1", value="8 MHz", lib=DEV, sym="Crystal",
@@ -171,9 +173,23 @@ ACTUATOR_PARTS += [
 # NRST is pin 7 / PG10 on this package; KiCad names it PG10.
 # ---------------------------------------------------------------------------
 
+# CONFLICT-4  The driver module, twice over.
+#   First, the EasyEDA export originally supplied was a "step mini" - a quad
+#   half-bridge with IN1-IN4 and four outputs - not the board on the bench. The
+#   real one is the SimpleFOC Mini v1.0 (DRV8313, three phases, 2022-04), and
+#   its export is what vendor/simplefoc_mini_v1.json now holds.
+#   Second, and the reason this matters beyond pad positions: the module's 3V3
+#   header pin is DRV8313 pin 15, V3P3OUT - an internal 3.3 V REGULATOR OUTPUT,
+#   confirmed from the vendor schematic. An earlier revision of this file tied
+#   it to the carrier's 3.3 V rail on the assumption it was a supply input,
+#   which would have connected the AMS1117's output to the module's regulator.
+#   It is left open. The module's nSlp / nRes / nFlt pull-ups are fed from it
+#   internally, which is why those three pins need no connection to idle in the
+#   running state.
+
 ACTUATOR_NETS = {
     # --- rails --------------------------------------------------------------
-    "+19V": [("J4", "Pin_1"), ("M1", "VM"), ("C19", "1"), ("R3", "1")],
+    "+19V": [("J4", "Pin_1"), ("A1", "VM"), ("C19", "1"), ("R3", "1")],
     "+5V": [("J2", "Pin_4"), ("J3", "Pin_4"), ("U6", "VI"), ("C11", "1"), ("C20", "1")],
     "+3V3": [
         ("U6", "VO"), ("C12", "1"), ("C21", "1"), ("C22", "1"),
@@ -186,16 +202,13 @@ ACTUATOR_NETS = {
         ("J5", "Pin_1"), ("J6", "Pin_1"),
         ("R5", "1"), ("R8", "1"), ("R9", "1"), ("R10", "1"),
         ("D2", "A"),                       # power LED straight off the rail
-        # The module's nSLEEP / nRESET / nFAULT pull-ups hang off its own 3V3
-        # pin, which is therefore a logic supply input, not an output. Leave it
-        # open and those three pins float and the driver may never come out of
-        # reset.
-        ("M1", "3V3"),
+        # The driver module's 3V3 pin is deliberately absent here. It is
+        # DRV8313 V3P3OUT, a regulator output - see CONFLICT-4.
     ],
     "GND": [
         ("J4", "Pin_2"), ("J2", "Pin_5"), ("J3", "Pin_5"), ("J5", "Pin_5"),
         ("J6", "Pin_2"), ("J7", "Pin_2"),
-        ("M1", "GND*"), ("C19", "2"),
+        ("A1", "GND*"), ("C19", "2"),
         ("U1", "VSS*"), ("U1", "VSSA"),
         ("U2", "GND"), ("U2", "Rs"),             # Rs to GND = high-speed mode
         ("U4", "GND*"), ("U5", "GND*"),
@@ -211,23 +224,23 @@ ACTUATOR_NETS = {
     ],
 
     # --- motor drive --------------------------------------------------------
-    "PWM_A": [("U1", "PA8"), ("M1", "IN1")],
-    "PWM_B": [("U1", "PA9"), ("M1", "IN2")],
-    "PWM_C": [("U1", "PA10"), ("M1", "IN3")],
+    "PWM_A": [("U1", "PA8"), ("A1", "IN1")],
+    "PWM_B": [("U1", "PA9"), ("A1", "IN2")],
+    "PWM_C": [("U1", "PA10"), ("A1", "IN3")],
     # EN is the hardware kill line: it leaves on both CAN connectors so the
     # brain can pull every driver down at once, and R7 holds it off unpowered.
-    "DRV_EN": [("U1", "PB12"), ("M1", "EN"), ("J2", "Pin_3"), ("J3", "Pin_3"), ("R7", "1")],
+    "DRV_EN": [("U1", "PB12"), ("A1", "EN"), ("J2", "Pin_3"), ("J3", "Pin_3"), ("R7", "1")],
 
     # --- phases and current sense ------------------------------------------
-    "PH_A_DRV": [("M1", "OUT1"), ("R1", "1"), ("U4", "+")],
+    "PH_A_DRV": [("A1", "M1"), ("R1", "1"), ("U4", "+")],
     "PH_A": [("R1", "2"), ("J1", "Pin_1"), ("U4", "-")],
-    "PH_B_DRV": [("M1", "OUT2"), ("R2", "1"), ("U5", "+")],
+    "PH_B_DRV": [("A1", "M2"), ("R2", "1"), ("U5", "+")],
     "PH_B": [("R2", "2"), ("J1", "Pin_2"), ("U5", "-")],
-    "PH_C": [("M1", "OUT3"), ("J1", "Pin_3")],
+    "PH_C": [("A1", "M3"), ("J1", "Pin_3")],
     # The module brings nFAULT out with its own pull-up. PB4 is free and this
     # is the difference between a driver that has tripped and a motor that is
     # merely not moving, so it is worth the pin.
-    "DRV_nFAULT": [("M1", "nFAULT"), ("U1", "PB4")],
+    "DRV_nFAULT": [("A1", "nFlt"), ("U1", "PB4")],
     "ISENSE_A": [("U4", "~"), ("U1", "PA1")],
     "ISENSE_B": [("U5", "~"), ("U1", "PA3")],
 
@@ -431,7 +444,7 @@ ACTUATOR_GROUPS = {
     "clock":    ["Y1", "C1", "C2"],
     "can":      ["U2", "C10", "R12", "JP1", "J2", "J3"],
     "isense":   ["U4", "U5", "R1", "R2", "C8", "C9"],
-    "drive":    ["M1", "J1", "R7"],
+    "drive":    ["A1", "J1", "R7"],
     "analog":   ["J6", "J7", "R3", "R4", "R5", "C14", "C15"],
     "nodeid":   ["R8", "R9", "R10", "JP2", "JP3", "JP4"],
     "status":   ["D1", "R13"],

@@ -2421,7 +2421,7 @@
 						)
 					)
 				)
-				(pin power_in line
+				(pin power_out line
 					(at -12.7 7.619999999999999 0)
 					(length 2.54)
 					(name "3V3"
@@ -8011,7 +8011,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "ddadbc5c-69a2-43ba-a713-7f7d2ce68d4f")
-		(property "Reference" "#PWR487"
+		(property "Reference" "#PWR818"
 			(at 30 206.9 0)
 			(effects
 				(font
@@ -8034,7 +8034,7 @@
 		(instances
 			(project "main-brain"
 				(path "/0f59cd00-4aec-49c6-a79a-ca571be7adeb"
-					(reference "#PWR487")
+					(reference "#PWR818")
 					(unit 1)
 				)
 			)
@@ -8049,7 +8049,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "2065ea7f-ec63-4d12-a5f9-6916789b2c43")
-		(property "Reference" "#FLG487"
+		(property "Reference" "#FLG818"
 			(at 42.7 206.9 0)
 			(effects
 				(font
@@ -8072,7 +8072,7 @@
 		(instances
 			(project "main-brain"
 				(path "/0f59cd00-4aec-49c6-a79a-ca571be7adeb"
-					(reference "#FLG487")
+					(reference "#FLG818")
 					(unit 1)
 				)
 			)
@@ -8087,7 +8087,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "38f31868-61f4-4260-a6f5-3a367a746ce1")
-		(property "Reference" "#PWR115"
+		(property "Reference" "#PWR295"
 			(at 68.1 206.9 0)
 			(effects
 				(font
@@ -8110,7 +8110,7 @@
 		(instances
 			(project "main-brain"
 				(path "/0f59cd00-4aec-49c6-a79a-ca571be7adeb"
-					(reference "#PWR115")
+					(reference "#PWR295")
 					(unit 1)
 				)
 			)
@@ -8125,7 +8125,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "0fa7449c-d301-443e-ab1d-9a506640e502")
-		(property "Reference" "#FLG115"
+		(property "Reference" "#FLG295"
 			(at 80.8 206.9 0)
 			(effects
 				(font
@@ -8148,7 +8148,7 @@
 		(instances
 			(project "main-brain"
 				(path "/0f59cd00-4aec-49c6-a79a-ca571be7adeb"
-					(reference "#FLG115")
+					(reference "#FLG295")
 					(unit 1)
 				)
 			)
@@ -8163,7 +8163,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "eeb87335-72ba-4103-a8ee-ff1e8f1d7dfb")
-		(property "Reference" "#PWR464"
+		(property "Reference" "#PWR366"
 			(at 106.2 206.9 0)
 			(effects
 				(font
@@ -8186,7 +8186,7 @@
 		(instances
 			(project "main-brain"
 				(path "/0f59cd00-4aec-49c6-a79a-ca571be7adeb"
-					(reference "#PWR464")
+					(reference "#PWR366")
 					(unit 1)
 				)
 			)
@@ -8201,7 +8201,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "d18ea5af-20a9-4234-abd0-598a5bc29478")
-		(property "Reference" "#FLG464"
+		(property "Reference" "#FLG366"
 			(at 118.9 206.9 0)
 			(effects
 				(font
@@ -8224,7 +8224,7 @@
 		(instances
 			(project "main-brain"
 				(path "/0f59cd00-4aec-49c6-a79a-ca571be7adeb"
-					(reference "#FLG464")
+					(reference "#FLG366")
 					(unit 1)
 				)
 			)
@@ -8239,7 +8239,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "b3c6987f-fbcd-4b3b-a70c-f7600954f2aa")
-		(property "Reference" "#PWR441"
+		(property "Reference" "#PWR234"
 			(at 144.3 206.9 0)
 			(effects
 				(font
@@ -8262,7 +8262,7 @@
 		(instances
 			(project "main-brain"
 				(path "/0f59cd00-4aec-49c6-a79a-ca571be7adeb"
-					(reference "#PWR441")
+					(reference "#PWR234")
 					(unit 1)
 				)
 			)
@@ -8277,7 +8277,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "74c4a83a-9da5-4e8f-ade8-d93c0d05e369")
-		(property "Reference" "#FLG441"
+		(property "Reference" "#FLG234"
 			(at 157 206.9 0)
 			(effects
 				(font
@@ -8300,7 +8300,7 @@
 		(instances
 			(project "main-brain"
 				(path "/0f59cd00-4aec-49c6-a79a-ca571be7adeb"
-					(reference "#FLG441")
+					(reference "#FLG234")
 					(unit 1)
 				)
 			)
@@ -8315,7 +8315,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "7aa98be6-964e-479c-a434-4ec308072fb6")
-		(property "Reference" "#PWR887"
+		(property "Reference" "#PWR542"
 			(at 182.4 206.9 0)
 			(effects
 				(font
@@ -8338,7 +8338,7 @@
 		(instances
 			(project "main-brain"
 				(path "/0f59cd00-4aec-49c6-a79a-ca571be7adeb"
-					(reference "#PWR887")
+					(reference "#PWR542")
 					(unit 1)
 				)
 			)
@@ -8353,7 +8353,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "abf544ff-cd80-4197-a3ff-9b85daaf6809")
-		(property "Reference" "#FLG887"
+		(property "Reference" "#FLG542"
 			(at 195.1 206.9 0)
 			(effects
 				(font
@@ -8376,7 +8376,7 @@
 		(instances
 			(project "main-brain"
 				(path "/0f59cd00-4aec-49c6-a79a-ca571be7adeb"
-					(reference "#FLG887")
+					(reference "#FLG542")
 					(unit 1)
 				)
 			)

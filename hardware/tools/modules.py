@@ -26,24 +26,30 @@ FP_VERSION = 20240108
 # Pin order tables.  index 0 is pad 1.
 # ---------------------------------------------------------------------------
 
-# SimpleFOC Mini - geometry read from the vendor's own EasyEDA export
-# (vendor/simplefoc_stepmini.json), so pad positions, sizes and drills are the
-# real ones rather than a guess. See SIMPLEFOC_JSON below.
+# SimpleFOC Mini v1.0 - geometry read from the vendor's own EasyEDA exports in
+# vendor/: the PCB export gives pad positions, sizes and drills, and the
+# schematic export resolves the PCB's anonymous U1_nn nets to real signals.
 #
-# The export shows a QUAD half-bridge: IN1-IN4 in and OUT1-OUT4 out, plus
-# nFAULT / nSLEEP / nRESET. That is a stepper-class driver (DRV8844 family in
-# HTSSOP-28), not the three-in / three-output DRV8313 the build console names.
-# A 3-phase motor uses three of the four channels, so it works - but it is not
-# the part the console specifies, and it is worth confirming which module is
-# actually on the bench. See the actuator README.
-SIMPLEFOC_JSON = "simplefoc_stepmini.json"
+# Confirmed from the schematic: DRV8313 pin 15 is V3P3OUT, an internal 3.3 V
+# REGULATOR OUTPUT. The module's nSlp / nRes / nFlt pull-ups are fed from it,
+# which is why they idle in the running state with nothing connected. The 3V3
+# header pin must NOT be tied to the carrier's 3.3 V rail - that would put two
+# regulator outputs nose to nose.
+#
+# DRV8313 pin names, from the vendor schematic:
+#   5 OUT1   8 OUT2   9 OUT3   15 V3P3OUT   16 RESET#   17 SLEEP#
+#   18 FAULT#   23 IN3   25 IN2   27 IN1   4,11 VM
+SIMPLEFOC_JSON = "simplefoc_mini_v1.json"
 
-# net name in the export -> pin name on the symbol, in pad order
+# EasyEDA net name in the export -> pin name on the symbol. The M1/M2/M3 names
+# match the module's silkscreen; the DRV8313 calls the same pins OUT1/2/3.
 SIMPLEFOC_NETMAP = {
-    "IN1": "IN1", "IN2": "IN2", "IN3": "IN3", "IN4": "IN4",
-    "R4_1": "EN", "NFLT": "nFAULT", "NSLP": "nSLEEP", "NRES": "nRESET",
-    "3.3V": "3V3", "VCC": "VM",
-    "U2_5": "OUT1", "U2_7": "OUT2", "U2_8": "OUT3", "U2_10": "OUT4",
+    "R4_2": "EN",                                   # EN reaches the driver via R4
+    "U1_27": "IN1", "U1_25": "IN2", "U1_23": "IN3",
+    "NFLT": "nFlt", "NSLP": "nSlp", "NRES": "nRes",
+    "3.3V": "3V3",                                  # V3P3OUT - an output
+    "U1_5": "M1", "U1_8": "M2", "U1_9": "M3",       # OUT1 / OUT2 / OUT3
+    "VCC": "VM",                                    # the 8-35 V input
 }
 
 # ESP32-S3 Super Mini, 2 x 11 on 2.54 mm.
@@ -103,8 +109,10 @@ def symbol(name, left, right, ref="U", desc="", value=None, w=None):
     s += f'\t\t(symbol "{name}_1_1"\n'
 
     def pin(pname, num, x, y, rot):
-        etype = "power_in" if pname in ("VCC", "VDD", "5V", "3V3", "VIN", "IN+") else \
-                "power_out" if pname in ("OUT+",) else \
+        # 3V3 on the driver module is V3P3OUT, a regulator output - typing it as
+        # a power input would have ERC demand a supply for it.
+        etype = "power_out" if pname in ("OUT+", "3V3") else \
+                "power_in" if pname in ("VCC", "VDD", "5V", "VIN", "IN+") else \
                 "passive" if pname in ("GND", "IN-", "OUT-") or pname.startswith("NC") else \
                 "bidirectional"
         style = "line"
@@ -189,12 +197,12 @@ def build():
     jpath = os.path.join(here, "..", "vendor", SIMPLEFOC_JSON)
     pins, pads, npth, outline = simplefoc_from_json(jpath)
     # inputs and control down the left, power and outputs down the right
-    LEFT = ("IN1", "IN2", "IN3", "IN4", "EN", "nSLEEP", "nRESET", "nFAULT")
+    LEFT = ("EN", "IN1", "IN2", "IN3", "nFlt", "nSlp", "nRes")
     left = [(n, i) for n, i in pins if n in LEFT]
     right = [(n, i) for n, i in pins if n not in LEFT]
     syms.append(symbol("SimpleFOC_Mini", left, right, ref="M",
-                       desc="SimpleFOC Mini driver module on female headers; "
-                            "quad half-bridge, geometry from the vendor export",
+                       desc="SimpleFOC Mini v1.0 (DRV8313) on female headers; "
+                            "geometry from the vendor EasyEDA export",
                        value="SimpleFOC Mini", w=22.86))
     fps["SimpleFOC_Mini_Socket"] = simplefoc_footprint(pads, npth, outline)
 
@@ -263,12 +271,31 @@ def simplefoc_from_json(path):
         doc = json.load(f)
 
     raw = []
+
+    def add(pad_str):
+        f_ = pad_str.split("~")
+        raw.append(dict(x=float(f_[2]), y=float(f_[3]), w=float(f_[4]),
+                        h=float(f_[5]), net=f_[7], hole=float(f_[9]),
+                        shape=f_[1]))
+
+    # On this board the two headers are placed as components, so only the power
+    # pads and the mounting holes are top-level shapes; the other thirteen pads
+    # live inside LIB entries. Only the HDR-* components are wanted - the rest
+    # of the nested pads belong to the driver IC and its passives, which are on
+    # the module, not on our carrier.
+    def package_of(lib_str):
+        field = lib_str.split("~")[3].split("`")
+        return field[field.index("package") + 1] if "package" in field else ""
+
     for sh in doc["shape"]:
-        if isinstance(sh, str) and sh.startswith("PAD~"):
-            f_ = sh.split("~")
-            raw.append(dict(x=float(f_[2]), y=float(f_[3]), w=float(f_[4]),
-                            h=float(f_[5]), net=f_[7], hole=float(f_[9]),
-                            shape=f_[1]))
+        if not isinstance(sh, str):
+            continue
+        if sh.startswith("PAD~"):
+            add(sh)
+        elif sh.startswith("LIB~") and package_of(sh).startswith("HDR"):
+            for sub in sh.split("#@$"):
+                if sub.startswith("PAD~"):
+                    add(sub)
     x0 = min(p["x"] for p in raw)
     y0 = min(p["y"] for p in raw)
     for p in raw:
@@ -289,9 +316,9 @@ def simplefoc_from_json(path):
 
     pins, pads = [], []
     for i, p in enumerate(pins_raw, start=1):
+        # Unmapped nets keep their export name; GND stays GND on every pad it
+        # appears on, and spec.py reaches all of them at once with "GND*".
         name = SIMPLEFOC_NETMAP.get(p["net"], p["net"])
-        if name == "GND" and any(n == "GND" for n, _ in pins):
-            name = "GND"                       # several grounds; GND* matches all
         pins.append((name, i))
         pads.append((i, round(p["mx"] - cx, 3), round(p["my"] - cy, 3),
                      p["mw"], p["mh"], p["md"]))

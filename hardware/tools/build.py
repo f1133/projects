@@ -46,7 +46,7 @@ ACTUATOR_NEAR = {
     "C10": "U2", "R12": "U2", "JP1": "U2",           # CAN transceiver
     "R1": "U4", "C8": "U4",                          # shunt A: Kelvin tap
     "R2": "U5", "C9": "U5",                          # shunt B
-    "C19": "M1", "R7": "M1",                         # bulk at the driver VIN
+    "C19": "A1", "R7": "A1",                         # bulk at the driver VM
     "C11": "U6", "C12": "U6", "C20": "U6", "C21": "U6", "C22": "U6",
     "R3": "R4", "R5": "J7", "C14": "R4", "C15": "R5",
     "R13": "D1", "R14": "D2",

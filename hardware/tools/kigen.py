@@ -901,7 +901,19 @@ def place_by_group(parts, libs, groups, W, H, edge_groups, pinned=None, near=Non
             pos[ref] = (px, py)
             taken.append(shift(shapes[ref], px, py))
 
-    def put(ref, ax, ay, reg):
+    def _to_box(cx, cy, box):
+        dx = max(box[0] - cx, 0.0, cx - box[2])
+        dy = max(box[1] - cy, 0.0, cy - box[3])
+        return dx * dx + dy * dy
+
+    def put(ref, ax, ay, reg, toward=None):
+        """Place ref at the first free spot, preferring closeness to `toward`.
+
+        `toward` is the courtyard of the part this one must hug. Ranking by
+        distance to that courtyard rather than to its origin matters for long
+        parts: an HC49-SD crystal's courtyard is 20 mm wide, so its origin is
+        10 mm from the pads its load caps actually need to be near.
+        """
         boxes = shapes.get(ref)
         if not boxes:
             return False
@@ -911,9 +923,14 @@ def place_by_group(parts, libs, groups, W, H, edge_groups, pinned=None, near=Non
                       for dx in range(-radius, radius + 1)
                       for dy in range(-radius, radius + 1)
                       if max(abs(dx), abs(dy)) == radius])
-            cands.sort(key=lambda c: (not (reg[0] <= c[0] <= reg[2]
-                                           and reg[1] <= c[1] <= reg[3]),
-                                      (c[0] - ax) ** 2 + (c[1] - ay) ** 2))
+            if toward:
+                cands.sort(key=lambda c: (not (reg[0] <= c[0] <= reg[2]
+                                               and reg[1] <= c[1] <= reg[3]),
+                                          min(_to_box(c[0], c[1], b) for b in toward)))
+            else:
+                cands.sort(key=lambda c: (not (reg[0] <= c[0] <= reg[2]
+                                               and reg[1] <= c[1] <= reg[3]),
+                                          (c[0] - ax) ** 2 + (c[1] - ay) ** 2))
             for cx, cy in cands:
                 sb = shift(boxes, cx, cy)
                 if not inside(sb, W, H, EDGE_MARGIN):
@@ -942,19 +959,39 @@ def place_by_group(parts, libs, groups, W, H, edge_groups, pinned=None, near=Non
         reg = regions.get(of.get(ref), (EDGE_MARGIN, EDGE_MARGIN, W, H))
         put(ref, (reg[0] + reg[2]) / 2, (reg[1] + reg[3]) / 2, reg)
 
-    pending = [r for r in sorted(near, key=lambda r: -area(r)) if r not in pos]
-    for _ in range(len(pending) + 1):
-        progress = False
-        for ref in list(pending):
-            tgt = pos.get(near[ref])
-            if tgt is None:
+    # Depth first, not breadth first. The crystal hangs off the MCU and its two
+    # load caps hang off the crystal; placing every first-level dependant before
+    # any second-level one lets unrelated parts take the space right beside the
+    # crystal and pushes its caps out. Following each chain to its end as soon
+    # as it is reachable keeps the tightest links tightest.
+    children = {}
+    for ref, tgt in near.items():
+        children.setdefault(tgt, []).append(ref)
+    for kids in children.values():
+        kids.sort(key=lambda r: -area(r))
+
+    def place_chain(tgt):
+        for ref in children.get(tgt, []):
+            if ref in pos:
                 continue
-            if not put(ref, tgt[0], tgt[1], free):
+            anchor = pos.get(tgt)
+            if anchor is None:
+                continue
+            if not put(ref, anchor[0], anchor[1], free,
+                       toward=shift(shapes[tgt], *anchor)):
                 spilled.append(ref)
-            pending.remove(ref)
-            progress = True
-        if not progress:
-            break
+                continue
+            place_chain(ref)
+
+    for root in sorted(dict.fromkeys(near.values()), key=lambda r: -area(r)):
+        place_chain(root)
+    for ref in sorted(near, key=lambda r: -area(r)):
+        if ref not in pos and ref not in spilled:
+            tgt_pos = pos.get(near[ref])
+            if tgt_pos is not None and not put(
+                    ref, tgt_pos[0], tgt_pos[1], free,
+                    toward=shift(shapes[near[ref]], *tgt_pos)):
+                spilled.append(ref)
 
     for ref in order:
         if ref in pos or ref in spilled:

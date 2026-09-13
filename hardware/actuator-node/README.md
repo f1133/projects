@@ -16,14 +16,47 @@ placement, netclasses and design rules. **No copper is routed** — that is your
 
 ## Before you route: three things to check
 
-**1. The SimpleFOC Mini footprint (highest risk).** `lib/juno.pretty/
-SimpleFOC_Mini_Socket.kicad_mod` is built from the console's pin list, which
-gives names but no geometry. The row spacing is a guess (20.32 mm, 8 x 0.1 in).
-Print the footprint at 1:1, sit the real module on it, and if it is wrong edit
-`SIMPLEFOC_MINI_ROW_SPACING` in `tools/modules.py` and re-run `tools/build.py`.
-The schematic is correct either way — nets are written by pin name — so this is
-a footprint fix, not a rewire. You mentioned having a `SimpleFOC_Mini.kicad_sym`;
-send it and this stops being a guess.
+**1. The driver module is measured, and it is A1, not M1.** Its footprint and
+symbol are read at build time from the vendor's own EasyEDA exports in
+`vendor/`: the PCB export gives pad positions, sizes and drills, and the
+schematic export resolves that PCB's anonymous `U1_nn` nets to real signals.
+19 pads — 15 pins plus 4 mounting holes — over 22.6 × 17.9 mm.
+
+The reference is **A1** rather than M1, because the module's own silkscreen
+calls its three motor pads M1/M2/M3 and `("M1", "M1")` in a netlist helps
+nobody.
+
+| Pin | Signal | Goes to | Pin | Signal | Goes to |
+|---|---|---|---|---|---|
+| 1 | EN | PB12, the kill line | 9 | GND | GND |
+| 2 | IN3 | PA10, TIM1_CH3 | 10 | 3V3 | **nothing — see below** |
+| 3 | IN2 | PA9, TIM1_CH2 | 11 | GND | GND |
+| 4 | IN1 | PA8, TIM1_CH1 | 12 | VM | +19 V |
+| 5 | GND | GND | 13 | M1 | phase A, through shunt R1 |
+| 6 | nFlt | PB4 | 14 | M2 | phase B, through shunt R2 |
+| 7 | nSlp | open | 15 | M3 | phase C |
+| 8 | nRes | open | | | |
+
+**2. Pin 10 is an output, and must stay unconnected.** The vendor schematic
+shows it is DRV8313 pin 15, `V3P3OUT` — the driver's internal 3.3 V regulator.
+An earlier revision of this project tied it to the carrier's 3.3 V rail on the
+assumption it was a supply input, which would have connected the AMS1117's
+output to the module's regulator. `tools/check.py` now fails the build if it
+ever reappears on a net.
+
+That same regulator feeds the module's own pull-ups on nSlp, nRes and nFlt,
+which is why those three idle in the running state with nothing attached — the
+driver comes out of sleep and reset by itself once VM is present.
+
+**3. An earlier export was the wrong board.** The first EasyEDA file supplied
+was a "step mini": a quad half-bridge with IN1–IN4 and four outputs. The board
+on the bench is the SimpleFOC Mini v1.0 (DRV8313, three phases, dated 04/22),
+and everything here is built from its export instead. The checker refuses any
+net mentioning `IN4` or `OUT4` so the two cannot be confused again.
+
+Still print the footprint at 1:1 and sit the real module on it before ordering.
+Geometry is measured now rather than guessed, so this is a confirmation rather
+than a discovery — but it is the one check that catches a mirrored footprint.
 
 **2. The INA240 pinout.** The console and the KiCad symbol disagree: the console
 says pin 1 IN+, pin 4 REF1, pin 7 NC; KiCad says pin 1 IN−, pin 4 GND, pin 7

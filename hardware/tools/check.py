@@ -169,21 +169,54 @@ def check(name):
                 bad(name, f"{r} extends past the {W}x{H} board outline")
                 break
 
-    # ---- 4. proximity ------------------------------------------------------
-    # A part in the right group can still be in the wrong place. A crystal
-    # 30 mm from its MCU, or a decoupling cap across the board from the pin it
-    # serves, passes every other check here and is still a bad board.
-    import math
-    # keyed on the pair, because "C1" is a crystal load cap on one board and a
-    # 470 uF electrolytic on the other
-    LIMITS = {("Y1", "U1"): 12.0, ("C1", "Y1"): 9.0, ("C2", "Y1"): 9.0}
-    for ref, tgt in sorted((board.get("near") or {}).items()):
-        if ref not in positions or tgt not in positions:
+    # ---- 3b. the two faults that produced this checker ---------------------
+    # The driver module's 3V3 pin is DRV8313 V3P3OUT, a regulator output. An
+    # earlier revision tied it to the carrier's 3.3 V rail, which would have
+    # shorted two regulators together. It must stay on no net at all.
+    for p_ in board["parts"]:
+        if p_["sym"] != "SimpleFOC_Mini":
             continue
-        dist = math.dist(positions[ref], positions[tgt])
-        limit = LIMITS.get((ref, tgt), 20.0)
-        if dist > limit:
-            bad(name, f"{ref} is {dist:.1f} mm from {tgt}, wanted within {limit:.0f} mm")
+        ref = p_["ref"]
+        for num, nm, *_ in pinmap[ref]:
+            if nm == "3V3" and (ref, num) in {(r, q) for cs in resolved.values()
+                                              for r, q in cs}:
+                bad(name, f"{ref}.{num} (3V3) is on a net - it is V3P3OUT, a "
+                          f"regulator output, and must be left open")
+        # The step-mini export this was first built from had a fourth channel.
+        # The real board has three phases; IN4/OUT4 must not reappear.
+        for num, nm, *_ in pinmap[ref]:
+            if nm in ("IN4", "OUT4"):
+                bad(name, f"{ref} has a pin '{nm}' - that is the wrong module")
+    for net_name, conns in board["nets"].items():
+        for r, pin_name in conns:
+            if pin_name in ("IN4", "OUT4"):
+                bad(name, f"net {net_name} references {r}.{pin_name}, which "
+                          f"belongs to the step-mini, not the Mini v1.0")
+
+    # ---- 4. proximity ------------------------------------------------------
+    # Measured as the GAP between courtyards, not centre to centre. An HC49-SD
+    # crystal is 13 mm long, so a load cap physically touching it still sits
+    # 9 mm centre to centre - a centre-based limit would be measuring the
+    # crystal's length, not how close the cap is.
+    def gap(a_boxes, b_boxes):
+        best = None
+        for a in a_boxes:
+            for b in b_boxes:
+                dx = max(0.0, a[0] - b[2], b[0] - a[2])
+                dy = max(0.0, a[1] - b[3], b[1] - a[3])
+                d = (dx * dx + dy * dy) ** 0.5
+                best = d if best is None else min(best, d)
+        return best
+
+    LIMITS = {("Y1", "U1"): 6.0, ("C1", "Y1"): 2.0, ("C2", "Y1"): 2.0}
+    for ref, tgt in sorted((board.get("near") or {}).items()):
+        if ref not in abs_boxes or tgt not in abs_boxes:
+            continue
+        d = gap(abs_boxes[ref], abs_boxes[tgt])
+        limit = LIMITS.get((ref, tgt), 12.0)
+        if d is not None and d > limit:
+            bad(name, f"{ref} sits {d:.1f} mm clear of {tgt}, wanted within "
+                      f"{limit:.0f} mm")
 
     for r, (px, py) in (board.get("pinned") or {}).items():
         got_at = positions.get(r)
