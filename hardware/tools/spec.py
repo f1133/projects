@@ -334,8 +334,13 @@ BRAIN_PARTS = [
     R("R6", "100k"),   # Q1 gate to ground
     R("R9", "100k"),   # Q1 source to gate
 
-    dict(ref="Q2", value="2N7000", lib="Transistor_FET", sym="2N7000",
-         fp=("Package_TO_SOT_THT", "TO-92_Inline"),
+    # AO3400A: single N-channel, SOT-23, Vgs(th) 0.7 V so it is fully on from a
+    # 3.3 V GPIO, and 30 mOhm where the job needs about 120 mA. Same family,
+    # package and G/S/D pinout as Q1, which keeps the BOM tidy. A dual in
+    # SOT-363 would also work electrically but puts a 0.65 mm pitch part on a
+    # board meant to be hand-soldered, and leaves half a device to tie off.
+    dict(ref="Q2", value="AO3400A", lib="Transistor_FET", sym="AO3400A",
+         fp=("Package_TO_SOT_SMD", "SOT-23"),
          note="Hardware kill line. Deliberately not a CAN message."),
     R("R3", "10k"),    # kill gate pull-down
     R("R4", "120R"),   # kill gate series - 100R not in stock, 120R is identical here
