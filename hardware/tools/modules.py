@@ -26,14 +26,25 @@ FP_VERSION = 20240108
 # Pin order tables.  index 0 is pad 1.
 # ---------------------------------------------------------------------------
 
-# SimpleFOC Mini v1.1 (DRV8313).  Two headers: control and motor output.
-# Taken from the build console's driver diagram, which lists the control side
-# as IN1 IN2 IN3 EN VIN GND and the motor side as OUT A/B/C.
-# UNVERIFIED against the physical module - the console gives pin names, not
-# a header pitch or spacing.
-SIMPLEFOC_MINI_CTRL = ["IN1", "IN2", "IN3", "EN", "VIN", "GND"]
-SIMPLEFOC_MINI_OUT = ["OUTA", "OUTB", "OUTC"]
-SIMPLEFOC_MINI_ROW_SPACING = 20.32   # mm between header rows, 8 x 0.1in - VERIFY
+# SimpleFOC Mini - geometry read from the vendor's own EasyEDA export
+# (vendor/simplefoc_stepmini.json), so pad positions, sizes and drills are the
+# real ones rather than a guess. See SIMPLEFOC_JSON below.
+#
+# The export shows a QUAD half-bridge: IN1-IN4 in and OUT1-OUT4 out, plus
+# nFAULT / nSLEEP / nRESET. That is a stepper-class driver (DRV8844 family in
+# HTSSOP-28), not the three-in / three-output DRV8313 the build console names.
+# A 3-phase motor uses three of the four channels, so it works - but it is not
+# the part the console specifies, and it is worth confirming which module is
+# actually on the bench. See the actuator README.
+SIMPLEFOC_JSON = "simplefoc_stepmini.json"
+
+# net name in the export -> pin name on the symbol, in pad order
+SIMPLEFOC_NETMAP = {
+    "IN1": "IN1", "IN2": "IN2", "IN3": "IN3", "IN4": "IN4",
+    "R4_1": "EN", "NFLT": "nFAULT", "NSLP": "nSLEEP", "NRES": "nRESET",
+    "3.3V": "3V3", "VCC": "VM",
+    "U2_5": "OUT1", "U2_7": "OUT2", "U2_8": "OUT3", "U2_10": "OUT4",
+}
 
 # ESP32-S3 Super Mini, 2 x 11 on 2.54 mm.
 # UNVERIFIED. External sources for this board were unreachable from the
@@ -172,21 +183,20 @@ def row(n_start, count, x, y0, dy=PITCH):
 def build():
     syms, fps = [], {}
 
-    # --- SimpleFOC Mini ----------------------------------------------------
-    ctrl = [(n, i + 1) for i, n in enumerate(SIMPLEFOC_MINI_CTRL)]
-    out = [(n, len(ctrl) + i + 1) for i, n in enumerate(SIMPLEFOC_MINI_OUT)]
-    syms.append(symbol("SimpleFOC_Mini", ctrl, out, ref="M",
-                       desc="SimpleFOC Mini v1.1 (DRV8313) on female headers",
-                       value="SimpleFOC Mini", w=17.78))
-    sp = SIMPLEFOC_MINI_ROW_SPACING
-    pads = row(1, 6, -sp / 2, -(5 * PITCH) / 2) + row(7, 3, sp / 2, -(2 * PITCH) / 2)
-    hh = (5 * PITCH) / 2
-    fps["SimpleFOC_Mini_Socket"] = footprint(
-        "SimpleFOC_Mini_Socket", pads,
-        (-sp / 2 - 2.5, -hh - 2.5, sp / 2 + 2.5, hh + 2.5),
-        desc="SimpleFOC Mini on 1x6 + 1x3 female headers - VERIFY row spacing",
-        courtyards=[(-sp / 2 - 1.6, -hh - 1.6, -sp / 2 + 1.6, hh + 1.6),
-                    (sp / 2 - 1.6, -PITCH - 1.6, sp / 2 + 1.6, PITCH + 1.6)])
+    # --- SimpleFOC Mini, from the vendor export ----------------------------
+    import os
+    here = os.path.dirname(os.path.abspath(__file__))
+    jpath = os.path.join(here, "..", "vendor", SIMPLEFOC_JSON)
+    pins, pads, npth, outline = simplefoc_from_json(jpath)
+    # inputs and control down the left, power and outputs down the right
+    LEFT = ("IN1", "IN2", "IN3", "IN4", "EN", "nSLEEP", "nRESET", "nFAULT")
+    left = [(n, i) for n, i in pins if n in LEFT]
+    right = [(n, i) for n, i in pins if n not in LEFT]
+    syms.append(symbol("SimpleFOC_Mini", left, right, ref="M",
+                       desc="SimpleFOC Mini driver module on female headers; "
+                            "quad half-bridge, geometry from the vendor export",
+                       value="SimpleFOC Mini", w=22.86))
+    fps["SimpleFOC_Mini_Socket"] = simplefoc_footprint(pads, npth, outline)
 
     # --- ESP32-S3 Super Mini ----------------------------------------------
     left = [(n, i + 1) for i, n in enumerate(ESP32_S3_LEFT)]
@@ -233,6 +243,114 @@ def build():
     lib = f'(kicad_symbol_lib\n\t(version {SYM_VERSION})\n\t(generator "juno")\n\t(generator_version "8.0")\n'
     lib += "".join(syms) + ')\n'
     return lib, fps
+
+
+# ---------------------------------------------------------------------------
+# SimpleFOC Mini, straight from the vendor export
+# ---------------------------------------------------------------------------
+EASYEDA_UNIT = 0.254        # one EasyEDA unit is 10 mil
+
+
+def simplefoc_from_json(path):
+    """Pads and pin names for the driver module, read from its EasyEDA export.
+
+    Returns (pins, pads, npth, outline) with everything in millimetres and the
+    origin at the module's centre. Pin numbers are assigned here, in reading
+    order, because the export's own numbers repeat across the mounting holes.
+    """
+    import json
+    with open(path) as f:
+        doc = json.load(f)
+
+    raw = []
+    for sh in doc["shape"]:
+        if isinstance(sh, str) and sh.startswith("PAD~"):
+            f_ = sh.split("~")
+            raw.append(dict(x=float(f_[2]), y=float(f_[3]), w=float(f_[4]),
+                            h=float(f_[5]), net=f_[7], hole=float(f_[9]),
+                            shape=f_[1]))
+    x0 = min(p["x"] for p in raw)
+    y0 = min(p["y"] for p in raw)
+    for p in raw:
+        p["mx"] = round((p["x"] - x0) * EASYEDA_UNIT, 3)
+        p["my"] = round((p["y"] - y0) * EASYEDA_UNIT, 3)
+        p["mw"] = round(p["w"] * EASYEDA_UNIT, 3)
+        p["mh"] = round(p["h"] * EASYEDA_UNIT, 3)
+        p["md"] = round(p["hole"] * 2 * EASYEDA_UNIT, 3)
+
+    cx = (min(p["mx"] for p in raw) + max(p["mx"] for p in raw)) / 2
+    cy = (min(p["my"] for p in raw) + max(p["my"] for p in raw)) / 2
+
+    # a pad whose hole fills the whole pad is a mounting hole, not a pin
+    holes = [p for p in raw if p["md"] >= p["mw"] - 0.01]
+    pins_raw = [p for p in raw if p not in holes]
+    # reading order: rows top to bottom, left to right within a row
+    pins_raw.sort(key=lambda p: (round(p["my"], 1), round(p["mx"], 1)))
+
+    pins, pads = [], []
+    for i, p in enumerate(pins_raw, start=1):
+        name = SIMPLEFOC_NETMAP.get(p["net"], p["net"])
+        if name == "GND" and any(n == "GND" for n, _ in pins):
+            name = "GND"                       # several grounds; GND* matches all
+        pins.append((name, i))
+        pads.append((i, round(p["mx"] - cx, 3), round(p["my"] - cy, 3),
+                     p["mw"], p["mh"], p["md"]))
+    npth = [(round(p["mx"] - cx, 3), round(p["my"] - cy, 3), p["md"]) for p in holes]
+    xs = [p["mx"] - cx for p in raw]
+    ys = [p["my"] - cy for p in raw]
+    outline = (min(xs) - 1.2, min(ys) - 1.2, max(xs) + 1.2, max(ys) + 1.2)
+    return pins, pads, npth, outline
+
+
+def simplefoc_footprint(pads, npth, outline):
+    x1, y1, x2, y2 = outline
+    s = ('(footprint "SimpleFOC_Mini_Socket"\n'
+         f'\t(version {FP_VERSION})\n\t(generator "juno")\n\t(generator_version "8.0")\n'
+         '\t(layer "F.Cu")\n'
+         '\t(descr "SimpleFOC Mini driver module on female headers - pad geometry '
+         'taken from the vendor EasyEDA export")\n'
+         '\t(tags "juno module socket simplefoc")\n\t(attr through_hole)\n')
+
+    def prop(nm, val, py, layer):
+        return (f'\t(property "{nm}" "{val}"\n\t\t(at 0 {py} 0)\n\t\t(layer "{layer}")\n'
+                f'\t\t(uuid "{_stable_uuid("sfm", nm)}")\n'
+                '\t\t(effects\n\t\t\t(font\n\t\t\t\t(size 1 1)\n'
+                '\t\t\t\t(thickness 0.15)\n\t\t\t)\n\t\t)\n\t)\n')
+    s += prop("Reference", "REF**", round(y1 - 1.2, 3), "F.SilkS")
+    s += prop("Value", "SimpleFOC_Mini_Socket", round(y2 + 1.2, 3), "F.Fab")
+    s += prop("Datasheet", "", 0, "F.Fab")
+    s += prop("Description", "SimpleFOC Mini on female headers", 0, "F.Fab")
+
+    # body outline on silk and fab; courtyard only around the header rows so the
+    # parts underneath the module are not flagged
+    for layer, width in (("F.SilkS", 0.12), ("F.Fab", 0.1)):
+        for (sx, sy, ex, ey) in ((x1, y1, x2, y1), (x2, y1, x2, y2),
+                                 (x2, y2, x1, y2), (x1, y2, x1, y1)):
+            s += (f'\t(fp_line\n\t\t(start {sx} {sy})\n\t\t(end {ex} {ey})\n'
+                  f'\t\t(stroke\n\t\t\t(width {width})\n\t\t\t(type solid)\n\t\t)\n'
+                  f'\t\t(layer "{layer}")\n\t)\n')
+    rows = {}
+    for n, px, py, pw, ph, pd in pads:
+        rows.setdefault(round(py, 1), []).append((px, pw))
+    for ry, items in rows.items():
+        rx1 = min(x for x, w in items) - max(w for x, w in items) / 2 - 0.6
+        rx2 = max(x for x, w in items) + max(w for x, w in items) / 2 + 0.6
+        for (sx, sy, ex, ey) in ((rx1, ry - 1.6, rx2, ry - 1.6), (rx2, ry - 1.6, rx2, ry + 1.6),
+                                 (rx2, ry + 1.6, rx1, ry + 1.6), (rx1, ry + 1.6, rx1, ry - 1.6)):
+            s += (f'\t(fp_line\n\t\t(start {round(sx,3)} {round(sy,3)})\n'
+                  f'\t\t(end {round(ex,3)} {round(ey,3)})\n'
+                  f'\t\t(stroke\n\t\t\t(width 0.05)\n\t\t\t(type solid)\n\t\t)\n'
+                  f'\t\t(layer "F.CrtYd")\n\t)\n')
+    for n, px, py, pw, ph, pd in pads:
+        shape = "rect" if n == 1 else "oval"
+        s += (f'\t(pad "{n}" thru_hole {shape}\n\t\t(at {px} {py})\n'
+              f'\t\t(size {max(pw, pd + 0.5)} {max(ph, pd + 0.5)})\n\t\t(drill {pd})\n'
+              f'\t\t(layers "*.Cu" "*.Mask")\n\t\t(remove_unused_layers no)\n\t)\n')
+    for i, (hx, hy, hd) in enumerate(npth):
+        s += (f'\t(pad "" np_thru_hole circle\n\t\t(at {hx} {hy})\n'
+              f'\t\t(size {hd} {hd})\n\t\t(drill {hd})\n'
+              f'\t\t(layers "F&B.Cu" "*.Mask")\n\t)\n')
+    return s + ')\n'
 
 
 if __name__ == "__main__":

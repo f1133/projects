@@ -116,11 +116,21 @@ def check(name):
             bad(name, f"{ref}.{pin}: no '{net}' label at the stub tip {tip}")
         checked += 1
 
-    # ---- 3. anchored parts inside the outline ------------------------------
+    # ---- 3. groups, pinned parts, geometry ---------------------------------
+    refs = {p_["ref"] for p_ in board["parts"]}
+    seen = {}
+    for g, members in board["groups"].items():
+        for r in members:
+            if r in seen:
+                bad(name, f"{r} is in both group '{seen[r]}' and '{g}'")
+            seen[r] = g
+    for r in sorted(refs - set(seen)):
+        bad(name, f"{r} is in no functional group")
+    for r in sorted(set(seen) - refs):
+        bad(name, f"group '{seen[r]}' lists {r}, which is not a part")
+
     W, H = board["size"]
-    for ref, (ax, ay) in B.EXTRA[name]["anchors"].items():
-        if not (0 <= ax <= W and 0 <= ay <= H):
-            bad(name, f"anchor {ref} at ({ax}, {ay}) is outside the {W}x{H} board")
+
     # Real overlap, using the same courtyard boxes the placer used, so the
     # checker and the placer cannot disagree. Parts with two courtyards - the
     # Mini, which straddles the MCU it sits 8.5 mm above - keep their gap.
@@ -158,6 +168,33 @@ def check(name):
             if bx[1] < -0.01 or bx[3] > H + 0.01:
                 bad(name, f"{r} extends past the {W}x{H} board outline")
                 break
+
+    # ---- 4. proximity ------------------------------------------------------
+    # A part in the right group can still be in the wrong place. A crystal
+    # 30 mm from its MCU, or a decoupling cap across the board from the pin it
+    # serves, passes every other check here and is still a bad board.
+    import math
+    # keyed on the pair, because "C1" is a crystal load cap on one board and a
+    # 470 uF electrolytic on the other
+    LIMITS = {("Y1", "U1"): 12.0, ("C1", "Y1"): 9.0, ("C2", "Y1"): 9.0}
+    for ref, tgt in sorted((board.get("near") or {}).items()):
+        if ref not in positions or tgt not in positions:
+            continue
+        dist = math.dist(positions[ref], positions[tgt])
+        limit = LIMITS.get((ref, tgt), 20.0)
+        if dist > limit:
+            bad(name, f"{ref} is {dist:.1f} mm from {tgt}, wanted within {limit:.0f} mm")
+
+    for r, (px, py) in (board.get("pinned") or {}).items():
+        got_at = positions.get(r)
+        if got_at is None:
+            bad(name, f"pinned part {r} is not on the board")
+        elif abs(got_at[0] - px) > 0.01 or abs(got_at[1] - py) > 0.01:
+            bad(name, f"pinned {r} wanted ({px}, {py}) but sits at {got_at}")
+    if "A6" in positions and "A7" in positions:
+        d = abs(positions["A7"][0] - positions["A6"][0])
+        if abs(d - 130.0) > 0.01:
+            bad(name, f"microphones are {d:.2f} mm apart, must be 130.00 mm")
 
     print(f"{name}: {len(want)} pad nets verified, {checked} schematic stubs verified, "
           f"{len(floating)} pins intentionally open")

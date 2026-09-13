@@ -447,7 +447,7 @@ def instance_footprint(raw, lib_id, ref, value, at, netmap, tag, name, layer="F.
     return "\t" + body.replace("\n", "\n\t") + "\n"
 
 
-def gen_pcb(board, name, parts, nets_resolved, pinmap, libs, anchors):
+def gen_pcb(board, name, parts, nets_resolved, pinmap, libs):
     by_ref = {p["ref"]: p for p in parts}
     W, H = board["size"]
 
@@ -472,12 +472,13 @@ def gen_pcb(board, name, parts, nets_resolved, pinmap, libs, anchors):
         out.append(f'\t(net {i} "{n}")\n')
 
     # ---- placement ---------------------------------------------------------
-    placed, spilled = place_parts(parts, libs,
-                                  {r: a for r, a in anchors.items() if r in by_ref},
-                                  W, H)
+    placed, spilled, regions, fill = place_by_group(
+        parts, libs, board["groups"], W, H, board["edge_groups"],
+        pinned=board.get("pinned"), near=board.get("near"))
+    print(f"  {name}: courtyards occupy {fill * 100:.0f}% of the board area")
     if spilled:
-        print(f"  {name}: {len(spilled)} parts did not fit on the board and are "
-              f"parked beside it: {' '.join(sorted(spilled))}")
+        print(f"  {name}: {len(spilled)} parts did not fit and are parked "
+              f"beside the board: {' '.join(sorted(spilled))}")
 
     for ref in sorted(by_ref):
         p = by_ref[ref]
@@ -485,6 +486,14 @@ def gen_pcb(board, name, parts, nets_resolved, pinmap, libs, anchors):
         out.append(instance_footprint(raw, f"{p['fp'][0]}:{p['fp'][1]}", ref,
                                       p["value"], placed[ref],
                                       pad_net.get(ref, {}), ref, name))
+
+    # ---- group labels ------------------------------------------------------
+    for g, (rx1, ry1, rx2, ry2) in sorted(regions.items()):
+        out.append(f'\t(gr_text "{g}"\n\t\t(at {num(rx1 + 1)} {num(ry1 + 1.6)})\n'
+                   f'\t\t(layer "Cmts.User")\n\t\t(uuid "{uid(name, "grp", g)}")\n'
+                   f'\t\t(effects\n\t\t\t(font\n\t\t\t\t(size 1.4 1.4)\n'
+                   f'\t\t\t\t(thickness 0.2)\n\t\t\t)\n'
+                   f'\t\t\t(justify left top)\n\t\t)\n\t)\n')
 
     # ---- board outline -----------------------------------------------------
     def gr(kind, body, layer, tag):
@@ -799,3 +808,193 @@ def place_parts(parts, libs, anchors, W, H, fixed_out=None):
         if cy > H:
             cy, cx = 5.0, cx + 12.0
     return pos, spilled
+
+
+# ---------------------------------------------------------------------------
+# Group-aware placement
+# ---------------------------------------------------------------------------
+# Parts are placed by functional block rather than scattered: the CAN
+# transceiver with its termination and decoupling, the crystal with its two
+# load caps, each INA240 with its shunt. Every net then has a short local run
+# and the long hauls are only the handful that genuinely cross the board.
+
+SLACK = 3.4          # region area per unit of courtyard area - routing room
+EDGE_MARGIN = 1.5
+
+
+def region_layout(parts, libs, groups, W, H, edge_groups):
+    """Shelf-pack a rectangle per group, sized in proportion to what the group
+    needs and scaled so the set always fits the board. Edge groups take the
+    outer shelves, where the cable and the eye can reach them."""
+    shapes = {p["ref"]: courtyard_boxes(libs.footprint(*p["fp"])) for p in parts}
+
+    def area(ref):
+        return sum((b[2] - b[0]) * (b[3] - b[1]) for b in shapes[ref]) or 1.0
+
+    weight = {g: sum(area(r) for r in refs if r in shapes)
+              for g, refs in groups.items() if any(r in shapes for r in refs)}
+    total = sum(weight.values()) or 1.0
+
+    usable_w = W - 2 * EDGE_MARGIN
+    usable_h = H - 2 * EDGE_MARGIN
+    budget = usable_w * usable_h * 0.96
+
+    edges = [g for g in weight if g in edge_groups]
+    others = [g for g in weight if g not in edge_groups]
+    half = (len(edges) + 1) // 2
+    order = edges[:half] + others + edges[half:]
+
+    # rows of roughly equal height, filled in order
+    rows, row, row_w = [], [], 0.0
+    target_row_w = usable_w
+    for g in order:
+        gw = weight[g] / total * budget
+        w = min(usable_w, max(6.0, (gw * 1.6) ** 0.5))
+        if row and row_w + w > target_row_w:
+            rows.append(row)
+            row, row_w = [], 0.0
+        row.append((g, w))
+        row_w += w
+    if row:
+        rows.append(row)
+
+    row_weight = [sum(weight[g] for g, _ in r) for r in rows]
+    tw = sum(row_weight) or 1.0
+    regions, y = {}, EDGE_MARGIN
+    for r, rw in zip(rows, row_weight):
+        h = usable_h * rw / tw
+        span = sum(w for _, w in r) or 1.0
+        x = EDGE_MARGIN
+        for g, w in r:
+            ww = w / span * usable_w
+            regions[g] = (x, y, x + ww, y + h)
+            x += ww
+        y += h
+    fill = total / (usable_w * usable_h)
+    return regions, shapes, y + EDGE_MARGIN, fill
+
+
+def place_by_group(parts, libs, groups, W, H, edge_groups, pinned=None, near=None):
+    """Returns (positions, spilled, regions, needed_height).
+
+    `pinned` parts have a mechanical reason to be where they are - the two
+    microphones must stay exactly 130 mm apart or they stop being a bearing -
+    so they are placed first and everything else routes around them.
+    """
+    of = {}
+    for g, refs in groups.items():
+        for r in refs:
+            of[r] = g
+    regions, shapes, needed_h, fill = region_layout(parts, libs, groups, W, H, edge_groups)
+
+    # inside a region, the biggest part first and the rest packed around it
+    def area(ref):
+        return sum((b[2] - b[0]) * (b[3] - b[1]) for b in shapes[ref]) or 1.0
+
+    order = sorted((p["ref"] for p in parts),
+                   key=lambda r: (of.get(r, "zz"), -area(r)))
+
+    taken, pos, spilled = [], {}, []
+    pinned = pinned or {}
+    for ref, (px, py) in pinned.items():
+        if ref in shapes:
+            pos[ref] = (px, py)
+            taken.append(shift(shapes[ref], px, py))
+
+    def put(ref, ax, ay, reg):
+        boxes = shapes.get(ref)
+        if not boxes:
+            return False
+        for radius in range(0, 240):
+            cands = ([(ax, ay)] if radius == 0 else
+                     [(ax + dx * 0.5, ay + dy * 0.5)
+                      for dx in range(-radius, radius + 1)
+                      for dy in range(-radius, radius + 1)
+                      if max(abs(dx), abs(dy)) == radius])
+            cands.sort(key=lambda c: (not (reg[0] <= c[0] <= reg[2]
+                                           and reg[1] <= c[1] <= reg[3]),
+                                      (c[0] - ax) ** 2 + (c[1] - ay) ** 2))
+            for cx, cy in cands:
+                sb = shift(boxes, cx, cy)
+                if not inside(sb, W, H, EDGE_MARGIN):
+                    continue
+                if any(overlaps(sb, t) for t in taken):
+                    continue
+                pos[ref] = (round(cx, 3), round(cy, 3))
+                taken.append(sb)
+                return True
+        return False
+
+    # Parts with an electrical reason to hug another part are placed against it
+    # rather than merely in the same region: a crystal 30 mm from its MCU is in
+    # the right group and still wrong. Targets go down first, then their
+    # dependants, then everything else.
+    near = {k: v for k, v in (near or {}).items() if k in shapes and v in shapes}
+    free = (-W * 2, -H * 2, W * 3, H * 3)
+
+    # Chains matter: the crystal hugs the MCU and its load caps hug the crystal,
+    # so a part that is itself somebody's target must not be placed at its
+    # region centre first. Roots go down by region, then dependants in order.
+    roots = [t for t in dict.fromkeys(near.values()) if t not in near]
+    for ref in sorted(roots, key=lambda r: -area(r)):
+        if ref in pos:
+            continue
+        reg = regions.get(of.get(ref), (EDGE_MARGIN, EDGE_MARGIN, W, H))
+        put(ref, (reg[0] + reg[2]) / 2, (reg[1] + reg[3]) / 2, reg)
+
+    pending = [r for r in sorted(near, key=lambda r: -area(r)) if r not in pos]
+    for _ in range(len(pending) + 1):
+        progress = False
+        for ref in list(pending):
+            tgt = pos.get(near[ref])
+            if tgt is None:
+                continue
+            if not put(ref, tgt[0], tgt[1], free):
+                spilled.append(ref)
+            pending.remove(ref)
+            progress = True
+        if not progress:
+            break
+
+    for ref in order:
+        if ref in pos or ref in spilled:
+            continue
+        boxes = shapes.get(ref)
+        if not boxes:
+            continue
+        reg = regions.get(of.get(ref), (EDGE_MARGIN, EDGE_MARGIN, W, H))
+        ax, ay = (reg[0] + reg[2]) / 2, (reg[1] + reg[3]) / 2
+        best = None
+        for radius in range(0, 240):
+            step = 0.5
+            cands = ([(ax, ay)] if radius == 0 else
+                     [(ax + dx * step, ay + dy * step)
+                      for dx in range(-radius, radius + 1)
+                      for dy in range(-radius, radius + 1)
+                      if max(abs(dx), abs(dy)) == radius])
+            # prefer staying inside the group's own region
+            cands.sort(key=lambda c: (not (reg[0] <= c[0] <= reg[2]
+                                           and reg[1] <= c[1] <= reg[3]),
+                                      (c[0] - ax) ** 2 + (c[1] - ay) ** 2))
+            for cx, cy in cands:
+                sb = shift(boxes, cx, cy)
+                if not inside(sb, W, H, EDGE_MARGIN):
+                    continue
+                if any(overlaps(sb, t) for t in taken):
+                    continue
+                best = (round(cx, 3), round(cy, 3), sb)
+                break
+            if best:
+                break
+        if best:
+            pos[ref] = (best[0], best[1])
+            taken.append(best[2])
+        else:
+            spilled.append(ref)
+    cx, cy = W + 10.0, 5.0
+    for ref in spilled:
+        pos[ref] = (round(cx, 3), round(cy, 3))
+        cy += 7.0
+        if cy > H:
+            cy, cx = 5.0, cx + 12.0
+    return pos, spilled, regions, fill

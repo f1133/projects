@@ -1,7 +1,15 @@
 # actuator-node
 
 STM32G431CBT6 CAN-FD joint controller. One per joint; the boards daisy-chain on
-a single CAN bus and are addressed by three solder jumpers. 50 x 45 mm.
+a single CAN bus and are addressed by three solder jumpers. 70 x 60 mm.
+
+Parts are placed by functional block - see `placement.svg` for the colour-coded
+map. Each block keeps its own passives: the CAN transceiver with its
+termination and decoupling, the crystal with its two load caps, each INA240
+with its shunt, the LDO with its input and output caps. Parts with an
+electrical reason to hug something else are placed against it rather than
+merely in the same region, and `tools/check.py` enforces the distances - the
+crystal is held within 12 mm of the MCU and its load caps within 9 mm of it.
 
 Generated from the Juno build console. Schematic and PCB are complete through
 placement, netclasses and design rules. **No copper is routed** — that is yours.
@@ -44,6 +52,7 @@ you want PB8 free. Settle it in CubeMX (chunk A4) before etching.
 | **Encoder** | Motor-mounted, so a 4-pin header (3V3 GND SCL SDA) at J6 replaces the AS5600 soldered through the board centre. |
 | **Two layers, not one** | See `../docs/fabrication.md`. The 0 R crossover jumpers JP1–JP8 in the console BOM are not needed and are gone. |
 | **470 µF moved** | The console puts it where the CAN-ext connector is; there they are on opposite faces, here both are front-side. |
+| **LEDs** | Two, both XL-3216SURC red 1206 (the part you have). D1 is the status LED on PC13; D2 is new and reports the 3.3 V rail directly, so a dead board tells you whether the LDO is up before firmware is involved. Series resistors are 220 R: at Vf 2.4 V there is only 0.9 V of headroom on a 3.3 V rail, so the value sets the current sharply - 220 R gives about 4 mA, plenty for a 225 mcd part. |
 | **Shunt sense polarity** | The console's drawing and its caption contradict each other. Taken as drawn: IN+ driver side, IN− motor side, so output rises above mid-rail for current flowing driver → motor. A firmware sign constant, not a wiring hazard. |
 
 ## Known tight spot

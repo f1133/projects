@@ -26,6 +26,17 @@ name — so if the order is wrong, correcting those two lists and re-running
 `build.py` is the whole fix. Same applies to the MP1584EN, the mic breakouts and
 the I2C modules, though those are more standard.
 
+## Indicators
+
+Two, both XL-3216SURC red 1206, the part you have. D2 sits on the **5 V** rail
+rather than 3.3 V so it reports the buck, which is the thing that actually
+fails - the S3's own regulator is downstream of it. D3 is a firmware heartbeat
+on IO1; the module has an LED on IO48 but it is buried once the board is in the
+base.
+
+Series resistors follow the part's 2.4 V forward drop: 470 R on the 5 V rail
+and 220 R on the 3.3 V GPIO, both giving about 4-5 mA.
+
 ## One part added beyond the console BOM
 
 **D1, a 10 V zener, plus R6.** The console specifies an SI2301-class P-MOSFET

@@ -24,59 +24,54 @@ FP_DIR = f"{CACHE}/kicad-footprints"
 # place are packed into a field beside the board for you to drag in.
 # ---------------------------------------------------------------------------
 
-ACTUATOR_ANCHORS = {
-    "U1": (25.0, 26.4),     # G431, board centre, under the driver
-    "M1": (25.0, 22.5),     # Mini socket rows straddle the MCU, 8.5 mm up
-    "U4": (15.3, 25.3), "U5": (15.3, 30.1),
-    "R1": (9.3, 25.3), "R2": (9.3, 30.1),      # shunts, Kelvin tapped
-    "U2": (34.7, 25.3),     # CAN transceiver
-    "U6": (34.0, 30.0),     # LDO
-    # The console puts the 470 uF at (40.7, 37.3), but there it is an SMD can
-    # on the copper face while the CAN-ext connector is a through-hole body on
-    # the opposite face. Both are front-side here, so the can moves clear.
-    "C19": (30.0, 38.5),    # 470 uF bulk
-    "Y1": (13.5, 37.5),     # crystal, kept near the MCU
-    "J5": (4.4, 16.1),      # SWD pads
-    # Connectors: the four corners are the only places with height, because
-    # the gearbox leaves 5.5 mm over the rest of the board.
-    "J1": (9.1, 5.8),       # phases
-    "J2": (40.9, 5.8),      # CAN in
-    "J4": (9.1, 39.2),      # 19 V
-    "J3": (40.9, 39.2),     # CAN ext
-    # The encoder header and the NTC are new (the encoder moved off-board), so
-    # the console has no place for them. Both sit on the side edges at mid
-    # height, the only other strip that clears the gearbox circle. See the
-    # mechanical note in the project README - this is tight.
-    "J6": (4.5, 11.0),      # encoder cable
-    "J7": (45.5, 11.0),     # NTC from the stator
+# ---------------------------------------------------------------------------
+# Pinned positions: parts whose location is a mechanical fact, not a
+# preference. Everything else is placed by functional group.
+# ---------------------------------------------------------------------------
+
+BRAIN_PINNED = {
+    "A6": (20.0, 50.0),     # left microphone
+    "A7": (150.0, 50.0),    # right microphone - exactly 130 mm from A6
 }
 
-BRAIN_ANCHORS = {
-    "A6": (5.0, 35.0), "A7": (135.0, 35.0),    # mics, exactly 130 mm apart
-    "A1": (70.0, 35.0),     # ESP32-S3
-    "A2": (35.0, 15.0),     # buck
-    "J1": (10.0, 60.0),     # barrel jack, star ground lands here
-    "Q1": (24.0, 60.0),     # reverse-polarity FET, right behind the jack
-    "U1": (100.0, 20.0),    # CAN transceiver
-    "J2": (126.0, 12.0),    # CAN + 5 V out to the arm
-    "J3": (126.0, 60.0),    # 19 V out to the arm
-    "A3": (55.0, 10.0),     # ToF
-    "A4": (88.0, 56.0),     # touch
-    "A5": (70.0, 58.0),     # IMU
-    "Q2": (98.0, 42.0),     # kill line
-    "J4": (108.0, 60.0),    # I2S out to the speaker amp
+ACTUATOR_PINNED = {}        # nothing on the node has a fixed spot any more:
+                            # the gearbox clearance applies to the back face,
+                            # and every part sits on the front.
+
+# Parts that must hug another part for electrical reasons, not tidiness.
+ACTUATOR_NEAR = {
+    "Y1": "U1", "C1": "Y1", "C2": "Y1",              # crystal loop, keep it tiny
+    "C3": "U1", "C4": "U1", "C5": "U1", "C6": "U1",  # VDD decoupling
+    "C7": "U1", "C16": "U1", "C17": "U1", "C18": "U1", "C13": "U1",
+    "C10": "U2", "R12": "U2", "JP1": "U2",           # CAN transceiver
+    "R1": "U4", "C8": "U4",                          # shunt A: Kelvin tap
+    "R2": "U5", "C9": "U5",                          # shunt B
+    "C19": "M1", "R7": "M1",                         # bulk at the driver VIN
+    "C11": "U6", "C12": "U6", "C20": "U6", "C21": "U6", "C22": "U6",
+    "R3": "R4", "R5": "J7", "C14": "R4", "C15": "R5",
+    "R13": "D1", "R14": "D2",
+}
+
+BRAIN_NEAR = {
+    "C4": "U1", "R5": "U1", "JP1": "U1",
+    "C1": "A2", "C2": "A2", "C3": "A2",
+    "R1": "A1", "R2": "A1", "C5": "A1",
+    "R3": "Q2", "R4": "Q2",
+    "D1": "Q1", "R6": "Q1",
+    "R7": "D2", "R8": "D3",
 }
 
 EXTRA = {
     "actuator-node": dict(
-        anchors=ACTUATOR_ANCHORS,
-        holes=[(3.0, 3.0), (47.0, 3.0), (3.0, 42.0), (47.0, 42.0)],
-        keepouts=[("circle", (25.0, 22.5, 21.8),
-                   "gearbox above - 5.5 mm ceiling inside this circle")],
+        pinned=ACTUATOR_PINNED, near=ACTUATOR_NEAR,
+        holes=[(3.5, 3.5), (66.5, 3.5), (3.5, 56.5), (66.5, 56.5)],
+        keepouts=[("circle", (35.0, 30.0, 24.0),
+                   "gearbox sits over this circle on the BACK face - "
+                   "keep rear protrusion under 5.5 mm")],
     ),
     "main-brain": dict(
-        anchors=BRAIN_ANCHORS,
-        holes=[(4.0, 4.0), (136.0, 4.0), (4.0, 66.0), (136.0, 66.0)],
+        pinned=BRAIN_PINNED, near=BRAIN_NEAR,
+        holes=[(4.0, 4.0), (166.0, 4.0), (4.0, 96.0), (166.0, 96.0)],
         keepouts=[],
     ),
 }
@@ -99,7 +94,7 @@ def main():
 
         libs = kigen.Libs(SYM_DIR, FP_DIR,
                           f"{out}/lib/juno.kicad_sym", f"{out}/lib/juno.pretty")
-        board = dict(board, **{k: v for k, v in EXTRA[name].items() if k != "anchors"})
+        board = dict(board, **EXTRA[name])
         resolved, assigned, pinmap, floating = kigen.resolve(
             name, board["parts"], board["nets"], libs)
 
@@ -107,8 +102,7 @@ def main():
         open(f"{out}/{name}.kicad_sch", "w").write(
             kigen.gen_sch(board, name, board["parts"], resolved, pinmap, libs, root))
         open(f"{out}/{name}.kicad_pcb", "w").write(
-            kigen.gen_pcb(board, name, board["parts"], resolved, pinmap, libs,
-                          EXTRA[name]["anchors"]))
+            kigen.gen_pcb(board, name, board["parts"], resolved, pinmap, libs))
         open(f"{out}/{name}.kicad_pro", "w").write(kigen.gen_pro(name, root))
         open(f"{out}/sym-lib-table", "w").write(
             kigen.sym_lib_table([("juno", "${KIPRJMOD}/lib/juno.kicad_sym")]))

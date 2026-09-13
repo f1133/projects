@@ -55,7 +55,8 @@ ACTUATOR_PARTS = [
          note="5 V from the CAN harness down to 3.3 V local."),
     dict(ref="M1", value="SimpleFOC Mini", lib="juno", sym="SimpleFOC_Mini",
          fp=("juno", "SimpleFOC_Mini_Socket"),
-         note="DRV8313 module on female headers, copper side, 8.5 mm above the board."),
+         note="Driver module on female headers. Geometry and pinout come from "
+              "the vendor's EasyEDA export; see CONFLICT-4."),
 
     # --- clock --------------------------------------------------------------
     dict(ref="Y1", value="8 MHz", lib=DEV, sym="Crystal",
@@ -76,9 +77,20 @@ ACTUATOR_PARTS = [
     R("R7", "10k"),    # driver EN pull-down: unpowered controller means motors off
     R("R8", "10k"), R("R9", "10k"), R("R10", "10k"),   # node ID pull-ups
     R("R12", "120R"),  # CAN termination, behind a solder jumper
-    R("R13", "120R"),  # status LED series
+    R("R13", "220R"),  # status LED series, sized for Vf 2.4 V
 
-    dict(ref="D1", value="red", lib=DEV, sym="LED", fp=LED_1206, note="status, on PC13"),
+    # XL-3216SURC: red, 1206, Vf 2.4 V at 20 mA, 225 mcd. Only 0.9 V of
+    # headroom on a 3.3 V rail, so the series value sets the current sharply -
+    # 220 R gives about 4 mA typical, which is plenty for a 225 mcd part and
+    # well inside what a G431 pin will source.
+    dict(ref="D1", value="XL-3216SURC red", lib=DEV, sym="LED", fp=LED_1206,
+         note="status / functioning, driven from PC13"),
+    # ADDED: the console has one LED. A rail that is simply on or off is the
+    # first thing you want to see when a board does not enumerate, so the 3V3
+    # rail gets its own indicator that owes nothing to firmware.
+    dict(ref="D2", value="XL-3216SURC red", lib=DEV, sym="LED", fp=LED_1206,
+         note="ADDED: 3V3 present. Lit means the LDO is up, firmware or not."),
+    R("R14", "220R"),
     dict(ref="JP1", value="TERM", lib=JUMP, sym="SolderJumper_2_Open",
          fp=("Jumper", "SolderJumper-2_P1.3mm_Open_Pad1.0x1.5mm"),
          note="Close on the two physical ends of the bus only."),
@@ -161,7 +173,7 @@ ACTUATOR_PARTS += [
 
 ACTUATOR_NETS = {
     # --- rails --------------------------------------------------------------
-    "+19V": [("J4", "Pin_1"), ("M1", "VIN"), ("C19", "1"), ("R3", "1")],
+    "+19V": [("J4", "Pin_1"), ("M1", "VM"), ("C19", "1"), ("R3", "1")],
     "+5V": [("J2", "Pin_4"), ("J3", "Pin_4"), ("U6", "VI"), ("C11", "1"), ("C20", "1")],
     "+3V3": [
         ("U6", "VO"), ("C12", "1"), ("C21", "1"), ("C22", "1"),
@@ -173,11 +185,17 @@ ACTUATOR_NETS = {
         ("U4", "REF1"), ("U5", "REF1"),          # REF1 high + REF2 low = mid-rail
         ("J5", "Pin_1"), ("J6", "Pin_1"),
         ("R5", "1"), ("R8", "1"), ("R9", "1"), ("R10", "1"),
+        ("D2", "A"),                       # power LED straight off the rail
+        # The module's nSLEEP / nRESET / nFAULT pull-ups hang off its own 3V3
+        # pin, which is therefore a logic supply input, not an output. Leave it
+        # open and those three pins float and the driver may never come out of
+        # reset.
+        ("M1", "3V3"),
     ],
     "GND": [
         ("J4", "Pin_2"), ("J2", "Pin_5"), ("J3", "Pin_5"), ("J5", "Pin_5"),
         ("J6", "Pin_2"), ("J7", "Pin_2"),
-        ("M1", "GND"), ("C19", "2"),
+        ("M1", "GND*"), ("C19", "2"),
         ("U1", "VSS*"), ("U1", "VSSA"),
         ("U2", "GND"), ("U2", "Rs"),             # Rs to GND = high-speed mode
         ("U4", "GND*"), ("U5", "GND*"),
@@ -188,7 +206,7 @@ ACTUATOR_NETS = {
         ("C9", "2"), ("C10", "2"), ("C11", "2"), ("C12", "2"), ("C13", "2"),
         ("C14", "2"), ("C15", "2"), ("C16", "2"),
         ("C17", "2"), ("C18", "2"), ("C20", "2"), ("C21", "2"), ("C22", "2"),
-        ("R4", "2"), ("R6", "2"), ("R7", "2"), ("R13", "2"),
+        ("R4", "2"), ("R6", "2"), ("R7", "2"), ("R13", "2"), ("R14", "2"),
         ("JP2", "B"), ("JP3", "B"), ("JP4", "B"),
     ],
 
@@ -201,11 +219,15 @@ ACTUATOR_NETS = {
     "DRV_EN": [("U1", "PB12"), ("M1", "EN"), ("J2", "Pin_3"), ("J3", "Pin_3"), ("R7", "1")],
 
     # --- phases and current sense ------------------------------------------
-    "PH_A_DRV": [("M1", "OUTA"), ("R1", "1"), ("U4", "+")],
+    "PH_A_DRV": [("M1", "OUT1"), ("R1", "1"), ("U4", "+")],
     "PH_A": [("R1", "2"), ("J1", "Pin_1"), ("U4", "-")],
-    "PH_B_DRV": [("M1", "OUTB"), ("R2", "1"), ("U5", "+")],
+    "PH_B_DRV": [("M1", "OUT2"), ("R2", "1"), ("U5", "+")],
     "PH_B": [("R2", "2"), ("J1", "Pin_2"), ("U5", "-")],
-    "PH_C": [("M1", "OUTC"), ("J1", "Pin_3")],
+    "PH_C": [("M1", "OUT3"), ("J1", "Pin_3")],
+    # The module brings nFAULT out with its own pull-up. PB4 is free and this
+    # is the difference between a driver that has tripped and a motor that is
+    # merely not moving, so it is worth the pin.
+    "DRV_nFAULT": [("M1", "nFAULT"), ("U1", "PB4")],
     "ISENSE_A": [("U4", "~"), ("U1", "PA1")],
     "ISENSE_B": [("U5", "~"), ("U1", "PA3")],
 
@@ -239,6 +261,7 @@ ACTUATOR_NETS = {
     # --- status -------------------------------------------------------------
     "LED_A": [("U1", "PC13"), ("D1", "A")],
     "LED_K": [("D1", "K"), ("R13", "1")],
+    "PWR_LED_K": [("D2", "K"), ("R14", "1")],
 }
 
 
@@ -309,6 +332,19 @@ BRAIN_PARTS = [
          fp=("Capacitor_SMD", "CP_Elec_10x10.5"), note="19 V input bulk."),
     C("C2", "10uF"), C("C3", "10uF"), C("C4", "100nF"), C("C5", "10uF"),
 
+    # ADDED: indicators. D2 is wired to the 5 V rail rather than 3V3 so it
+    # reports the buck, which is the thing that actually fails - the S3's own
+    # regulator is downstream of it. D3 is a firmware heartbeat; the module has
+    # an LED on IO48 but it is buried once the board is in the base.
+    # Same XL-3216SURC part as the node board - it is the only LED on hand.
+    # D2 runs off 5 V so it needs the larger series value; D3 is a 3.3 V GPIO.
+    dict(ref="D2", value="XL-3216SURC red", lib=DEV, sym="LED", fp=LED_1206,
+         note="ADDED: 5 V rail present, straight off the buck output."),
+    R("R7", "470R"),
+    dict(ref="D3", value="XL-3216SURC red", lib=DEV, sym="LED", fp=LED_1206,
+         note="ADDED: firmware heartbeat on IO1."),
+    R("R8", "220R"),
+
     # --- ports out to the arm ----------------------------------------------
     dict(ref="J2", value="CAN+5V", lib=CONN, sym="Conn_01x05",
          fp=("Connector_JST", "JST_XH_B5B-XH-AM_1x05_P2.50mm_Vertical"),
@@ -326,7 +362,8 @@ BRAIN_NETS = {
     "+19V_RAW": [("J1", "1"), ("Q1", "S"), ("D1", "K")],
     "Q1_GATE": [("Q1", "G"), ("R6", "1"), ("D1", "A")],
     "+19V": [("Q1", "D"), ("C1", "1"), ("A2", "IN+"), ("J3", "Pin_1")],
-    "+5V": [("A2", "OUT+"), ("A1", "5V"), ("C2", "1"), ("J2", "Pin_4"), ("J4", "Pin_1")],
+    "+5V": [("A2", "OUT+"), ("A1", "5V"), ("C2", "1"), ("J2", "Pin_4"),
+            ("J4", "Pin_1"), ("D2", "A")],
     "+3V3": [
         ("A1", "3V3"), ("C3", "1"), ("C4", "1"), ("C5", "1"),
         ("U1", "VCC"),
@@ -344,6 +381,7 @@ BRAIN_NETS = {
         ("A3", "GND"), ("A4", "GND"), ("A5", "GND"), ("A6", "GND"), ("A7", "GND"),
         ("A6", "LR"),                      # left mic: L/R low
         ("J2", "Pin_5"), ("J3", "Pin_2"), ("J4", "Pin_2"),
+        ("R7", "2"), ("R8", "2"),
     ],
 
     # --- I2C, master-end pull-ups only --------------------------------------
@@ -362,6 +400,11 @@ BRAIN_NETS = {
     "KILL_GATE": [("R4", "2"), ("Q2", "G"), ("R3", "1")],
     "EN_BUS": [("Q2", "D"), ("J2", "Pin_3")],
 
+    # --- indicators ---------------------------------------------------------
+    "PWR_LED_K": [("D2", "K"), ("R7", "1")],
+    "RUN_LED_A": [("A1", "IO1"), ("D3", "A")],
+    "RUN_LED_K": [("D3", "K"), ("R8", "1")],
+
     # --- CAN ----------------------------------------------------------------
     "CAN_TX": [("A1", "IO5"), ("U1", "D")],
     "CAN_RX": [("A1", "IO6"), ("U1", "R")],
@@ -370,11 +413,65 @@ BRAIN_NETS = {
     "CAN_TERM": [("JP1", "B"), ("R5", "1")],
 }
 
+# ===========================================================================
+# FUNCTIONAL GROUPS
+# ===========================================================================
+# Placement is by module, not by reference designator: a block and the passives
+# that serve it sit together, so routing is short and local and you are not
+# chasing a decoupling cap across the board. Every part must appear exactly
+# once - `check.py` enforces it.
+
+ACTUATOR_GROUPS = {
+    # 19 V in, the 5 V that arrives on the CAN harness, and the 3.3 V local rail
+    "power":    ["J4", "C19", "U6", "C11", "C12", "C20", "C21", "C22",
+                 "D2", "R14"],
+    # the MCU and everything it needs before it runs an instruction
+    "mcu":      ["U1", "C3", "C4", "C5", "C6", "C7", "C16", "C17", "C18",
+                 "C13", "R6", "J5"],
+    "clock":    ["Y1", "C1", "C2"],
+    "can":      ["U2", "C10", "R12", "JP1", "J2", "J3"],
+    "isense":   ["U4", "U5", "R1", "R2", "C8", "C9"],
+    "drive":    ["M1", "J1", "R7"],
+    "analog":   ["J6", "J7", "R3", "R4", "R5", "C14", "C15"],
+    "nodeid":   ["R8", "R9", "R10", "JP2", "JP3", "JP4"],
+    "status":   ["D1", "R13"],
+}
+
+BRAIN_GROUPS = {
+    "power":    ["J1", "Q1", "D1", "R6", "A2", "C1", "C2", "C3", "C5", "J3",
+                 "D2", "R7"],
+    "mcu":      ["A1"],
+    "can":      ["U1", "C4", "R5", "JP1", "J2"],
+    "kill":     ["Q2", "R3", "R4"],
+    "i2c":      ["A3", "A4", "A5", "R1", "R2"],
+    "audio":    ["A6", "A7", "J4"],
+    "status":   ["D3", "R8"],
+}
+
+# Groups whose parts want a board edge: cables have to reach them, and an
+# indicator you cannot see is not an indicator.
+EDGE_GROUPS = {"power", "can", "drive", "analog", "audio", "status"}
+
+
+def group_of(groups):
+    out = {}
+    for g, refs in groups.items():
+        for r in refs:
+            out[r] = g
+    return out
+
+
 BOARDS = {
-    "actuator-node": dict(parts=ACTUATOR_PARTS, nets=ACTUATOR_NETS, size=(50.0, 45.0),
+    # Both boards are larger than the console's figures. The node was 50 x 45,
+    # which fits but leaves almost nothing between blocks; at 70 x 60 each
+    # functional group gets its own area and the routing stays local. The base
+    # grows for the same reason, with the mics still exactly 130 mm apart.
+    "actuator-node": dict(parts=ACTUATOR_PARTS, nets=ACTUATOR_NETS, size=(70.0, 60.0),
+                          groups=ACTUATOR_GROUPS, edge_groups=EDGE_GROUPS,
                           title="Juno actuator node",
                           desc="STM32G431 CAN-FD joint controller"),
-    "main-brain": dict(parts=BRAIN_PARTS, nets=BRAIN_NETS, size=(140.0, 70.0),
+    "main-brain": dict(parts=BRAIN_PARTS, nets=BRAIN_NETS, size=(170.0, 100.0),
+                       groups=BRAIN_GROUPS, edge_groups=EDGE_GROUPS,
                        title="Juno main brain",
                        desc="ESP32-S3 controller, sensors and power for the base"),
 }

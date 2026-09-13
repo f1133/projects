@@ -6,8 +6,8 @@ its BOM tab defines the parts.
 
 | Project | Board | Role |
 |---|---|---|
-| `actuator-node/` | CAN bus actuator node | One per joint. Drives its motor locally, daisy-chains on CAN. |
-| `main-brain/` | ESP32-S3 board | Main brain. Two I2C devices, two microphones on a shared clock, kill line, power chain. |
+| `actuator-node/` | CAN bus actuator node, 70 x 60 mm | One per joint. Drives its motor locally, daisy-chains on CAN. |
+| `main-brain/` | ESP32-S3 board, 170 x 100 mm | Main brain. Two I2C devices, two microphones on a shared clock, kill line, power chain. |
 
 The head board is deliberately out of scope for now.
 
@@ -21,8 +21,14 @@ boards. Where the two disagree, the build console wins.
 ## Status
 
 Both projects are complete through schematic, footprint placement, netclasses
-and design rules, with no copper routed. `tools/check.py` verifies 268 pad nets
-and 268 schematic stubs against the spec and finds no courtyard collisions.
+and design rules, with no copper routed. `tools/check.py` verifies 286 pad nets
+and 286 schematic stubs against the spec, that every part belongs to exactly one
+functional group, that pinned parts and proximity constraints hold, and that no
+courtyards collide.
+
+Placement is by functional block: each block keeps its own passives, and parts
+with an electrical reason to hug another are held against it and checked. See
+`placement.svg` in each project for the colour-coded map.
 
 ERC and DRC have **not** been run: KiCad was not available where these were
 generated. Each project README lists what to check before ordering; the module
