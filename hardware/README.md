@@ -18,6 +18,16 @@ project on `claude/stm32g431-kicad-schematic-3e1o5o` (SimpleFOC Mini + ACS712 +
 LD1117 on stripboard) are a separate lineage and are not a source for these
 boards. Where the two disagree, the build console wins.
 
+## Status
+
+Both projects are complete through schematic, footprint placement, netclasses
+and design rules, with no copper routed. `tools/check.py` verifies 268 pad nets
+and 268 schematic stubs against the spec and finds no courtyard collisions.
+
+ERC and DRC have **not** been run: KiCad was not available where these were
+generated. Each project README lists what to check before ordering; the module
+footprints are the highest-risk item in both.
+
 ## Board-level decisions
 
 - **Everything is on-board except the FOC driver.** The SimpleFOC Mini mounts on

@@ -8,6 +8,23 @@ This is not a cost judgement — it is that single-sided home etch cannot
 physically host these two designs, and that the electrical problems it creates
 land exactly on the parts of these boards that are hardest to debug.
 
+## What this recommendation is arguing against
+
+Worth being explicit: Juno is *designed* for single-sided home etch, and not
+casually. `CLAUDE.md` fixes the node board at 50 x 45 mm, one copper layer, SMD
+on the face that looks at air and through-hole bodies in the four corners only.
+The BOM carries eight 0 R jumpers for single-layer crossovers, a sheet of copper
+clad and a bottle of ferric chloride. `06_electrical.md` sets toner-transfer
+design rules down to the LQFP fanout, and the runbook has "etch board one" on
+the critical path. The part choices follow from it too: the driver is a module
+on sockets specifically to keep the high-current gate layout off an etched
+board.
+
+So this is a recommendation to change a settled decision, and the burden is on
+it. The argument is below. The counter-argument - that the design already bends
+around the constraint and mostly succeeds - is real, and the turnaround section
+takes it seriously.
+
 ## Why single-sided does not work for these boards
 
 **The packages rule it out.** Between them these boards carry an ESP32-S3
@@ -58,6 +75,15 @@ keeping rather than abandoning home etching entirely.
   the board fits the actuator before committing to a JLC order. This catches
   the expensive class of mistake without waiting a week.
 - **Test fixtures and jigs**, where appearance and EMC are irrelevant.
+
+## What the projects assume
+
+Both generated projects are 2-layer, so if you overrule this you are not just
+changing a fab order. The node board would need the 0 R crossovers back, the
+ground pour removed, and a placement pass that keeps every crossing solvable —
+the console's own budget is "8 planned, expect 12, stop at 15". Regenerating
+against single-sided rules is a real change but a contained one; the schematic
+does not move.
 
 ## If you decide to home-etch anyway
 
