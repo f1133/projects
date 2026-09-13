@@ -1,0 +1,153 @@
+(footprint "MP1584EN_Module"
+	(version 20240108)
+	(generator "juno")
+	(generator_version "8.0")
+	(layer "F.Cu")
+	(descr "MP1584EN mini buck, IN pair one end, OUT pair the other")
+	(tags "juno module socket")
+	(attr through_hole)
+	(property "Reference" "REF**"
+		(at 0 -5.47 0)
+		(layer "F.SilkS")
+		(uuid "91aaf400-6e86-4899-ae2d-2c6d32d59a22")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "MP1584EN_Module"
+		(at 0 5.47 0)
+		(layer "F.Fab")
+		(uuid "3dd38f36-1308-441a-a070-b338b2b007c7")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(uuid "eae6590e-3336-42d6-a6ae-24790c0431d9")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" "MP1584EN mini buck, IN pair one end, OUT pair the other"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(uuid "aab3ca11-6365-4292-a321-655198735e92")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(fp_line
+		(start -11.89 -4.27)
+		(end 11.89 -4.27)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+	)
+	(fp_line
+		(start 11.89 -4.27)
+		(end 11.89 4.27)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+	)
+	(fp_line
+		(start 11.89 4.27)
+		(end -11.89 4.27)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+	)
+	(fp_line
+		(start -11.89 4.27)
+		(end -11.89 -4.27)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+	)
+	(fp_line
+		(start -12.14 -4.52)
+		(end 12.14 -4.52)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+	)
+	(fp_line
+		(start 12.14 -4.52)
+		(end 12.14 4.52)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+	)
+	(fp_line
+		(start 12.14 4.52)
+		(end -12.14 4.52)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+	)
+	(fp_line
+		(start -12.14 4.52)
+		(end -12.14 -4.52)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+	)
+	(pad "1" thru_hole rect
+		(at -8.89 -1.27)
+		(size 1.7 1.7)
+		(drill 1.0)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+	)
+	(pad "2" thru_hole circle
+		(at -8.89 1.27)
+		(size 1.7 1.7)
+		(drill 1.0)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+	)
+	(pad "3" thru_hole circle
+		(at 8.89 -1.27)
+		(size 1.7 1.7)
+		(drill 1.0)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+	)
+	(pad "4" thru_hole circle
+		(at 8.89 1.27)
+		(size 1.7 1.7)
+		(drill 1.0)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+	)
+)
