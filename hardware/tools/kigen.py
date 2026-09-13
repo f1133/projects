@@ -464,10 +464,50 @@ def gen_pcb(board, name, parts, nets_resolved, pinmap, libs):
            f'\t(general\n\t\t(thickness 1.6)\n\t\t(legacy_teardrops no)\n\t)\n'
            f'\t(paper "A4")\n']
     out.append(LAYERS)
+    # Plot settings are pre-set for the fab rather than left at defaults:
+    # Protel extensions give .GTL/.GBL/.GTS/.GBS/.GTO/.GKO, which is the naming
+    # the sample set from Lion Circuits uses, and the X2 attributes are off so
+    # the output is plain RS-274X that any shop reads.
     out.append('\t(setup\n\t\t(pad_to_mask_clearance 0)\n'
                '\t\t(allow_soldermask_bridges_in_footprints no)\n'
                '\t\t(aux_axis_origin 0 0)\n'
-               '\t\t(grid_origin 0 0)\n\t)\n')
+               '\t\t(grid_origin 0 0)\n'
+               '\t\t(pcbplotparams\n'
+               '\t\t\t(layerselection 0x00000000_00000000_55555555_5755f5ff)\n'
+               '\t\t\t(plot_on_all_layers_selection 0x00000000_00000000_00000000_00000000)\n'
+               '\t\t\t(disableapertmacros no)\n'
+               '\t\t\t(usegerberextensions yes)\n'
+               '\t\t\t(usegerberattributes no)\n'
+               '\t\t\t(usegerberadvancedattributes no)\n'
+               '\t\t\t(creategerberjobfile no)\n'
+               '\t\t\t(dashed_line_dash_ratio 12.000000)\n'
+               '\t\t\t(dashed_line_gap_ratio 3.000000)\n'
+               '\t\t\t(svgprecision 4)\n'
+               '\t\t\t(plotframeref no)\n'
+               '\t\t\t(mode 1)\n'
+               '\t\t\t(useauxorigin no)\n'
+               '\t\t\t(hpglpennumber 1)\n'
+               '\t\t\t(hpglpenspeed 20)\n'
+               '\t\t\t(hpglpendiameter 15.000000)\n'
+               '\t\t\t(pdf_front_fp_property_popups yes)\n'
+               '\t\t\t(pdf_back_fp_property_popups yes)\n'
+               '\t\t\t(dxfpolygonmode yes)\n'
+               '\t\t\t(dxfimperialunits yes)\n'
+               '\t\t\t(dxfusepcbnewfont yes)\n'
+               '\t\t\t(psnegative no)\n'
+               '\t\t\t(psa4output no)\n'
+               '\t\t\t(plotreference yes)\n'
+               '\t\t\t(plotvalue yes)\n'
+               '\t\t\t(plotfptext yes)\n'
+               '\t\t\t(plotinvisibletext no)\n'
+               '\t\t\t(sketchpadsonfab no)\n'
+               '\t\t\t(subtractmaskfromsilk no)\n'
+               '\t\t\t(outputformat 1)\n'
+               '\t\t\t(mirror no)\n'
+               '\t\t\t(drillshape 0)\n'
+               '\t\t\t(scaleselection 1)\n'
+               '\t\t\t(outputdirectory "gerbers/")\n'
+               '\t\t)\n\t)\n')
     for n, i in sorted(net_ids.items(), key=lambda kv: kv[1]):
         out.append(f'\t(net {i} "{n}")\n')
 

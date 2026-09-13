@@ -79,12 +79,12 @@ ACTUATOR_PARTS = [
     R("R7", "10k"),    # driver EN pull-down: unpowered controller means motors off
     R("R8", "10k"), R("R9", "10k"), R("R10", "10k"),   # node ID pull-ups
     R("R12", "120R"),  # CAN termination, behind a solder jumper
-    R("R13", "220R"),  # status LED series, sized for Vf 2.4 V
+    R("R13", "120R"),  # status LED series, sized for Vf 2.4 V
 
     # XL-3216SURC: red, 1206, Vf 2.4 V at 20 mA, 225 mcd. Only 0.9 V of
-    # headroom on a 3.3 V rail, so the series value sets the current sharply -
-    # 220 R gives about 4 mA typical, which is plenty for a 225 mcd part and
-    # well inside what a G431 pin will source.
+    # headroom on a 3.3 V rail, so the series value sets the current sharply.
+    # 120 R gives 7.5 mA - bright, inside the LED's 20 mA and well inside what
+    # a G431 pin will source - and it is a value already in stock.
     dict(ref="D1", value="XL-3216SURC red", lib=DEV, sym="LED", fp=LED_1206,
          note="status / functioning, driven from PC13"),
     # ADDED: the console has one LED. A rail that is simply on or off is the
@@ -92,7 +92,7 @@ ACTUATOR_PARTS = [
     # rail gets its own indicator that owes nothing to firmware.
     dict(ref="D2", value="XL-3216SURC red", lib=DEV, sym="LED", fp=LED_1206,
          note="ADDED: 3V3 present. Lit means the LDO is up, firmware or not."),
-    R("R14", "220R"),
+    R("R14", "120R"),
     dict(ref="JP1", value="TERM", lib=JUMP, sym="SolderJumper_2_Open",
          fp=("Jumper", "SolderJumper-2_P1.3mm_Open_Pad1.0x1.5mm"),
          note="Close on the two physical ends of the bus only."),
@@ -321,21 +321,24 @@ BRAIN_PARTS = [
     dict(ref="J1", value="19V", lib="Connector", sym="Barrel_Jack_Switch",
          fp=("Connector_BarrelJack", "BarrelJack_CUI_PJ-102AH_Horizontal"),
          note="5.5 x 2.1 mm, 19 V laptop brick. Star ground lands here."),
-    dict(ref="Q1", value="SI2301 class", lib="Transistor_FET", sym="DMG2301L",
+    # AO3481, the P-FET actually on hand: 30 V, 4.2 A, SOT-23. KiCad has no
+    # AO3481 symbol; AO3401A is the same family and the same G/S/D pinout.
+    dict(ref="Q1", value="AO3481", lib="Transistor_FET", sym="AO3401A",
          fp=("Package_TO_SOT_SMD", "SOT-23"),
          note="Reverse-polarity protection, high side."),
-    # ADDED beyond the console BOM: an SI2301-class P-FET is rated around
-    # +-8 V gate-source and the input is 19 V, so an unclamped gate destroys
-    # the part on first power-up. R6 pulls the gate down, D1 clamps Vgs.
-    dict(ref="D1", value="10V zener", lib=DEV, sym="D_Zener",
-         fp=("Diode_SMD", "D_SOD-123"), note="ADDED: Q1 gate-source clamp."),
-    R("R6", "100k"),   # ADDED: Q1 gate pull-down
+    # A 19 V input would sit right on the FET's gate-source rating with the
+    # gate pulled to ground, so the gate is divided rather than clamped:
+    # R9 source-to-gate and R6 gate-to-ground halve it to about -9.5 V, which
+    # enhances the FET hard and stays well inside its rating. This replaces a
+    # zener, which is not in stock, using two resistors that are.
+    R("R6", "100k"),   # Q1 gate to ground
+    R("R9", "100k"),   # Q1 source to gate
 
     dict(ref="Q2", value="2N7000", lib="Transistor_FET", sym="2N7000",
          fp=("Package_TO_SOT_THT", "TO-92_Inline"),
          note="Hardware kill line. Deliberately not a CAN message."),
     R("R3", "10k"),    # kill gate pull-down
-    R("R4", "100R"),   # kill gate series
+    R("R4", "120R"),   # kill gate series - 100R not in stock, 120R is identical here
     R("R1", "2k2"), R("R2", "2k2"),   # I2C pull-ups, master end only
     R("R5", "120R"),   # CAN termination: the brain is one physical end
     dict(ref="JP1", value="TERM", lib=JUMP, sym="SolderJumper_2_Open",
@@ -350,13 +353,14 @@ BRAIN_PARTS = [
     # regulator is downstream of it. D3 is a firmware heartbeat; the module has
     # an LED on IO48 but it is buried once the board is in the base.
     # Same XL-3216SURC part as the node board - it is the only LED on hand.
-    # D2 runs off 5 V so it needs the larger series value; D3 is a 3.3 V GPIO.
-    dict(ref="D2", value="XL-3216SURC red", lib=DEV, sym="LED", fp=LED_1206,
+    # D1 runs off 5 V, where 120 R would exceed the LED's 20 mA rating, so it
+    # takes 1 k for 2.6 mA. D2 is on a 3.3 V GPIO and takes 120 R for 7.5 mA.
+    dict(ref="D1", value="XL-3216SURC red", lib=DEV, sym="LED", fp=LED_1206,
          note="ADDED: 5 V rail present, straight off the buck output."),
-    R("R7", "470R"),
-    dict(ref="D3", value="XL-3216SURC red", lib=DEV, sym="LED", fp=LED_1206,
+    R("R7", "1k"),
+    dict(ref="D2", value="XL-3216SURC red", lib=DEV, sym="LED", fp=LED_1206,
          note="ADDED: firmware heartbeat on IO1."),
-    R("R8", "220R"),
+    R("R8", "120R"),
 
     # --- ports out to the arm ----------------------------------------------
     dict(ref="J2", value="CAN+5V", lib=CONN, sym="Conn_01x05",
@@ -372,11 +376,11 @@ BRAIN_PARTS = [
 
 BRAIN_NETS = {
     # --- power chain --------------------------------------------------------
-    "+19V_RAW": [("J1", "1"), ("Q1", "S"), ("D1", "K")],
-    "Q1_GATE": [("Q1", "G"), ("R6", "1"), ("D1", "A")],
+    "+19V_RAW": [("J1", "1"), ("Q1", "S"), ("R9", "1")],
+    "Q1_GATE": [("Q1", "G"), ("R6", "1"), ("R9", "2")],
     "+19V": [("Q1", "D"), ("C1", "1"), ("A2", "IN+"), ("J3", "Pin_1")],
     "+5V": [("A2", "OUT+"), ("A1", "5V"), ("C2", "1"), ("J2", "Pin_4"),
-            ("J4", "Pin_1"), ("D2", "A")],
+            ("J4", "Pin_1"), ("D1", "A")],
     "+3V3": [
         ("A1", "3V3"), ("C3", "1"), ("C4", "1"), ("C5", "1"),
         ("U1", "VCC"),
@@ -414,9 +418,9 @@ BRAIN_NETS = {
     "EN_BUS": [("Q2", "D"), ("J2", "Pin_3")],
 
     # --- indicators ---------------------------------------------------------
-    "PWR_LED_K": [("D2", "K"), ("R7", "1")],
-    "RUN_LED_A": [("A1", "IO1"), ("D3", "A")],
-    "RUN_LED_K": [("D3", "K"), ("R8", "1")],
+    "PWR_LED_K": [("D1", "K"), ("R7", "1")],
+    "RUN_LED_A": [("A1", "IO1"), ("D2", "A")],
+    "RUN_LED_K": [("D2", "K"), ("R8", "1")],
 
     # --- CAN ----------------------------------------------------------------
     "CAN_TX": [("A1", "IO5"), ("U1", "D")],
@@ -451,14 +455,14 @@ ACTUATOR_GROUPS = {
 }
 
 BRAIN_GROUPS = {
-    "power":    ["J1", "Q1", "D1", "R6", "A2", "C1", "C2", "C3", "C5", "J3",
-                 "D2", "R7"],
+    "power":    ["J1", "Q1", "R6", "R9", "A2", "C1", "C2", "C3", "C5", "J3",
+                 "D1", "R7"],
     "mcu":      ["A1"],
     "can":      ["U1", "C4", "R5", "JP1", "J2"],
     "kill":     ["Q2", "R3", "R4"],
     "i2c":      ["A3", "A4", "A5", "R1", "R2"],
     "audio":    ["A6", "A7", "J4"],
-    "status":   ["D3", "R8"],
+    "status":   ["D2", "R8"],
 }
 
 # Groups whose parts want a board edge: cables have to reach them, and an

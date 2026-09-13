@@ -117,3 +117,56 @@ class and following the ratsnest:
 | CAN | 0.25 mm | routed as a pair, kept over unbroken ground |
 | Power | 0.5-1.0 mm | sized per rail from the build console's current figures |
 | Motor | 1.0-2.0 mm | phase outputs, sized for peak not average |
+
+
+# Ordering from Lion Circuits
+
+The node board is going to Lion Circuits as a 2-layer board. Their capability
+page was unreachable from the environment these files were generated in, so the
+design rules below were **not** read off their spec sheet — they are a
+conservative set that any 2-layer prototype shop can build, and they are the
+same rules the projects already carried. If Lion publishes tighter or looser
+numbers, nothing here needs to move; there is margin in every direction.
+
+| Rule | Used here | Typical 2-layer floor |
+|---|---|---|
+| Track width, signal | 0.25 mm | 0.10–0.15 mm |
+| Clearance | 0.20 mm | 0.10–0.15 mm |
+| Via | 0.6 mm pad / 0.3 mm drill | 0.5 / 0.25 mm |
+| Annular ring | 0.15 mm | 0.10 mm |
+| Edge clearance | 0.5 mm | 0.25 mm |
+
+## Gerber output
+
+The projects are pre-set to emit the file names Lion's own sample set uses.
+`usegerberextensions` is on, which gives Protel-style extensions, and the X2
+attributes are off so the result is plain RS-274X rather than the newer
+annotated flavour:
+
+| KiCad layer | File |
+|---|---|
+| F.Cu | `.GTL` |
+| B.Cu | `.GBL` |
+| F.Mask | `.GTS` |
+| B.Mask | `.GBS` |
+| F.SilkS | `.GTO` |
+| Edge.Cuts | `.GKO` |
+| drill | `.DRL` |
+
+That is seven files against their eight; their sample carries the outline twice,
+once as `.GKO` and once as a plain `.gbr`. One is enough.
+
+**There is no bottom silkscreen to plot.** Every component sits on the front,
+so `.GBO` would be empty — leave it out rather than send a blank layer.
+
+Their sample is 2.4-format imperial, which is what its original CAD tool
+emitted. Do not try to match it. KiCad's default of 4.6 metric is both finer
+and universally read; the format is declared in the file header, so the shop's
+CAM reads whichever you send.
+
+## Before you upload
+
+Plot from Pcbnew with the settings already stored in the project, then open the
+result in KiCad's own Gerber Viewer and look at it. That catches the class of
+mistake — a missing layer, an inverted mask, an outline on the wrong layer —
+that no amount of DRC will.

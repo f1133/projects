@@ -10971,7 +10971,7 @@
 				)
 			)
 		)
-		(property "Value" "220R"
+		(property "Value" "120R"
 			(at 218.44 187.96 0)
 			(effects
 				(font
@@ -11029,7 +11029,7 @@
 				)
 			)
 		)
-		(property "Value" "220R"
+		(property "Value" "120R"
 			(at 251.46 187.96 0)
 			(effects
 				(font
@@ -11622,7 +11622,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "9a0364d7-e302-46c1-ae4e-414758034de2")
-		(property "Reference" "#PWR818"
+		(property "Reference" "#PWR104"
 			(at 30 295.48 0)
 			(effects
 				(font
@@ -11645,7 +11645,7 @@
 		(instances
 			(project "actuator-node"
 				(path "/f591a9c0-9da4-4a37-a7ce-2a93192dc18f"
-					(reference "#PWR818")
+					(reference "#PWR104")
 					(unit 1)
 				)
 			)
@@ -11660,7 +11660,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "4bfcc297-bd7c-49aa-a92a-f3ca1935ae27")
-		(property "Reference" "#FLG818"
+		(property "Reference" "#FLG104"
 			(at 42.7 295.48 0)
 			(effects
 				(font
@@ -11683,7 +11683,7 @@
 		(instances
 			(project "actuator-node"
 				(path "/f591a9c0-9da4-4a37-a7ce-2a93192dc18f"
-					(reference "#FLG818")
+					(reference "#FLG104")
 					(unit 1)
 				)
 			)
@@ -11698,7 +11698,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "29336b74-b035-4838-aa0c-fa97fbd860a2")
-		(property "Reference" "#PWR366"
+		(property "Reference" "#PWR438"
 			(at 68.1 295.48 0)
 			(effects
 				(font
@@ -11721,7 +11721,7 @@
 		(instances
 			(project "actuator-node"
 				(path "/f591a9c0-9da4-4a37-a7ce-2a93192dc18f"
-					(reference "#PWR366")
+					(reference "#PWR438")
 					(unit 1)
 				)
 			)
@@ -11736,7 +11736,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "bf71fb3d-3288-4dc1-aa1a-4876f5c67756")
-		(property "Reference" "#FLG366"
+		(property "Reference" "#FLG438"
 			(at 80.8 295.48 0)
 			(effects
 				(font
@@ -11759,7 +11759,7 @@
 		(instances
 			(project "actuator-node"
 				(path "/f591a9c0-9da4-4a37-a7ce-2a93192dc18f"
-					(reference "#FLG366")
+					(reference "#FLG438")
 					(unit 1)
 				)
 			)
@@ -11774,7 +11774,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "ecf85f5b-823c-4130-ad0a-38dd37409de3")
-		(property "Reference" "#PWR234"
+		(property "Reference" "#PWR193"
 			(at 106.2 295.48 0)
 			(effects
 				(font
@@ -11797,7 +11797,7 @@
 		(instances
 			(project "actuator-node"
 				(path "/f591a9c0-9da4-4a37-a7ce-2a93192dc18f"
-					(reference "#PWR234")
+					(reference "#PWR193")
 					(unit 1)
 				)
 			)
@@ -11812,7 +11812,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "0e6819fc-e876-4ba8-a256-12e5df33159a")
-		(property "Reference" "#FLG234"
+		(property "Reference" "#FLG193"
 			(at 118.9 295.48 0)
 			(effects
 				(font
@@ -11835,7 +11835,7 @@
 		(instances
 			(project "actuator-node"
 				(path "/f591a9c0-9da4-4a37-a7ce-2a93192dc18f"
-					(reference "#FLG234")
+					(reference "#FLG193")
 					(unit 1)
 				)
 			)
@@ -11850,7 +11850,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "65e42de7-d21b-4aa1-aa82-f7c01f1f8603")
-		(property "Reference" "#PWR542"
+		(property "Reference" "#PWR288"
 			(at 144.3 295.48 0)
 			(effects
 				(font
@@ -11873,7 +11873,7 @@
 		(instances
 			(project "actuator-node"
 				(path "/f591a9c0-9da4-4a37-a7ce-2a93192dc18f"
-					(reference "#PWR542")
+					(reference "#PWR288")
 					(unit 1)
 				)
 			)
@@ -11888,7 +11888,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "635bd0b6-9e9b-43a3-aa2b-4bce930e84cf")
-		(property "Reference" "#FLG542"
+		(property "Reference" "#FLG288"
 			(at 157 295.48 0)
 			(effects
 				(font
@@ -11911,7 +11911,7 @@
 		(instances
 			(project "actuator-node"
 				(path "/f591a9c0-9da4-4a37-a7ce-2a93192dc18f"
-					(reference "#FLG542")
+					(reference "#FLG288")
 					(unit 1)
 				)
 			)
