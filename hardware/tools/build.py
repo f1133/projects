@@ -34,9 +34,46 @@ BRAIN_PINNED = {
     "A7": (150.0, 50.0),    # right microphone - exactly 130 mm from A6
 }
 
-ACTUATOR_PINNED = {}        # nothing on the node has a fixed spot any more:
-                            # the gearbox clearance applies to the back face,
-                            # and every part sits on the front.
+# Connectors are pinned to the perimeter; everything else is placed by group.
+# Three rules drive this:
+#   - the two CAN connectors sit on opposite edges, because they are a
+#     daisy chain and a cable should enter one side and leave the other;
+#   - everything that goes to the motor - phases, encoder, the stator
+#     thermistor, and the SPI header that would carry an upgraded encoder -
+#     clusters on one edge, so one loom leaves the board in one direction;
+#   - power and debug take the remaining edge.
+ACTUATOR_PINNED = {
+    # Footprint courtyards differ in shape: the JST bodies run along X from near
+    # pin 1, while the 2.54 mm pin headers run along Y and stand 11-16 mm tall,
+    # so the headers are placed to reach an edge rather than centred on it.
+    # check.py enforces the pinned spot, the outline and the clearances.
+
+    # --- ports, all on the perimeter ---------------------------------------
+    "J2": (5.0, 30.0),      # CAN in   - left edge, mid height
+    "J3": (55.0, 30.0),     # CAN ext  - right edge, directly opposite J2
+    "J4": (8.0, 7.0),       # 19 V in  - top left
+    "J5": (20.0, 5.0),      # SWD      - top edge, beside power
+    # The motor loom leaves together on the bottom edge: phases, stator
+    # thermistor, encoder, and the SPI header for an upgraded encoder.
+    "J1": (8.0, 54.0),
+    "J7": (20.0, 54.0),
+    "J6": (30.0, 47.0),
+    "J8": (38.0, 42.0),
+
+    # --- the floorplan ------------------------------------------------------
+    # Left to group placement these land wherever the perimeter leaves room,
+    # which put the crystal 15 mm from the MCU and a shunt 16 mm from its
+    # amplifier. Placed by hand instead.
+    "A1": (44.0, 16.0),     # driver socket, 22.6 x 18.2 mm
+    "C19": (62.0, 20.0),    # 470 uF bulk, beside the driver's VM
+    "U1": (24.0, 31.0),     # STM32G431
+    "Y1": (24.0, 41.0),     # 8 MHz crystal, hard against the MCU
+    # Current sense. Each shunt sits beside its own amplifier because the sense
+    # tap has to land on the shunt's end caps - at 30 mOhm, 20 mm of copper is
+    # a 5 percent error - and the pair sits between the driver and the phases.
+    "R1": (38.0, 30.0), "U4": (46.0, 30.0),
+    "R2": (38.0, 36.0), "U5": (46.0, 36.0),
+}
 
 # Parts that must hug another part for electrical reasons, not tidiness.
 ACTUATOR_NEAR = {

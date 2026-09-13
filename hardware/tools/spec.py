@@ -138,6 +138,13 @@ ACTUATOR_PARTS += [
     dict(ref="J7", value="NTC", lib=CONN, sym="Conn_01x02",
          fp=("Connector_JST", "JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical"),
          note="Thermistor bead lives inside the stator, not on the board."),
+    # SPI1 is entirely free - PA4 to PA7 are unused - so the upgrade path to an
+    # SPI encoder (AS5047P, MA730, TLE5012B) or an SPI-configured driver costs
+    # one header and no re-assignment. SPI2 collides with the driver EN and the
+    # node-ID jumpers; SPI3 collides with the driver fault line.
+    dict(ref="J8", value="SPI", lib=CONN, sym="Conn_01x06",
+         fp=("Connector_PinHeader_2.54mm", "PinHeader_1x06_P2.54mm_Vertical"),
+         note="3V3 GND SCK MISO MOSI CS. Spare bus for an encoder or driver upgrade."),
 ]
 
 
@@ -199,7 +206,7 @@ ACTUATOR_NETS = {
         ("U2", "VCC"), ("C10", "1"),
         ("U4", "V+"), ("C8", "1"), ("U5", "V+"), ("C9", "1"),
         ("U4", "REF1"), ("U5", "REF1"),          # REF1 high + REF2 low = mid-rail
-        ("J5", "Pin_1"), ("J6", "Pin_1"),
+        ("J5", "Pin_1"), ("J6", "Pin_1"), ("J8", "Pin_1"),
         ("R5", "1"), ("R8", "1"), ("R9", "1"), ("R10", "1"),
         ("D2", "A"),                       # power LED straight off the rail
         # The driver module's 3V3 pin is deliberately absent here. It is
@@ -207,7 +214,7 @@ ACTUATOR_NETS = {
     ],
     "GND": [
         ("J4", "Pin_2"), ("J2", "Pin_5"), ("J3", "Pin_5"), ("J5", "Pin_5"),
-        ("J6", "Pin_2"), ("J7", "Pin_2"),
+        ("J6", "Pin_2"), ("J7", "Pin_2"), ("J8", "Pin_2"),
         ("A1", "GND*"), ("C19", "2"),
         ("U1", "VSS*"), ("U1", "VSSA"),
         ("U2", "GND"), ("U2", "Rs"),             # Rs to GND = high-speed mode
@@ -246,6 +253,11 @@ ACTUATOR_NETS = {
 
     # --- encoder (motor-mounted, on a cable) --------------------------------
     "I2C_SCL": [("U1", "PB6"), ("J6", "Pin_3")],
+    # --- spare SPI1, for an encoder or driver upgrade -----------------------
+    "SPI_SCK": [("U1", "PA5"), ("J8", "Pin_3")],
+    "SPI_MISO": [("U1", "PA6"), ("J8", "Pin_4")],
+    "SPI_MOSI": [("U1", "PA7"), ("J8", "Pin_5")],
+    "SPI_CS": [("U1", "PA4"), ("J8", "Pin_6")],
     "I2C_SDA": [("U1", "PB7"), ("J6", "Pin_4")],
 
     # --- CAN ----------------------------------------------------------------
@@ -454,7 +466,7 @@ ACTUATOR_GROUPS = {
     "can":      ["U2", "C10", "R12", "JP1", "J2", "J3"],
     "isense":   ["U4", "U5", "R1", "R2", "C8", "C9"],
     "drive":    ["A1", "J1", "R7"],
-    "analog":   ["J6", "J7", "R3", "R4", "R5", "C14", "C15"],
+    "analog":   ["J6", "J7", "J8", "R3", "R4", "R5", "C14", "C15"],
     "nodeid":   ["R8", "R9", "R10", "JP2", "JP3", "JP4"],
     "status":   ["D1", "R13"],
 }
