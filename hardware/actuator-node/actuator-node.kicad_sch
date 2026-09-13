@@ -5590,6 +5590,16 @@
 	)
 	(wire
 		(pts
+			(xy 149.86 134.62) (xy 147.32 134.62)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e53afeb9-75a4-43e7-a0ed-771adfb89451")
+	)
+	(wire
+		(pts
 			(xy 182.88 129.54) (xy 180.34 129.54)
 		)
 		(stroke
@@ -7527,6 +7537,16 @@
 			(justify right bottom)
 		)
 		(uuid "b588cbbf-1f7e-4ad0-a717-5192043be1dc")
+	)
+	(label "GND"
+		(at 147.32 134.62 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "327cdda8-18b2-4909-a993-0947a39fd78b")
 	)
 	(label "+3V3"
 		(at 180.34 129.54 180)
@@ -10122,7 +10142,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_JST:JST_XH_B3B-XH-A_1x03_P2.50mm_Vertical"
+		(property "Footprint" "Connector_JST:JST_XH_S3B-XH-A_1x03_P2.50mm_Horizontal"
 			(at 441.96 91.44 0)
 			(effects
 				(font
@@ -10183,7 +10203,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_JST:JST_XH_B5B-XH-AM_1x05_P2.50mm_Vertical"
+		(property "Footprint" "Connector_JST:JST_XH_S5B-XH-A_1x05_P2.50mm_Horizontal"
 			(at 477.52 93.98 0)
 			(effects
 				(font
@@ -10250,7 +10270,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_JST:JST_XH_B5B-XH-AM_1x05_P2.50mm_Vertical"
+		(property "Footprint" "Connector_JST:JST_XH_S5B-XH-A_1x05_P2.50mm_Horizontal"
 			(at 510.54 93.98 0)
 			(effects
 				(font
@@ -10317,7 +10337,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_JST:JST_VH_B2P-VH_1x02_P3.96mm_Vertical"
+		(property "Footprint" "Connector_JST:JST_VH_S2P-VH_1x02_P3.96mm_Horizontal"
 			(at 53.34 129.54 0)
 			(effects
 				(font
@@ -10482,8 +10502,8 @@
 		)
 	)
 	(symbol
-		(lib_id "Connector_Generic:Conn_01x02")
-		(at 154.94 129.54 0)
+		(lib_id "Connector_Generic:Conn_01x03")
+		(at 154.94 132.08 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -10491,7 +10511,7 @@
 		(dnp no)
 		(uuid "7e008e6a-00fd-42d3-aec7-e3abd4bb93c3")
 		(property "Reference" "J7"
-			(at 154.94 116.84 0)
+			(at 154.94 119.38 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -10499,15 +10519,15 @@
 			)
 		)
 		(property "Value" "NTC"
-			(at 154.94 142.24 0)
+			(at 154.94 144.78 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Footprint" "Connector_JST:JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical"
-			(at 154.94 129.54 0)
+		(property "Footprint" "Connector_JST:JST_XH_S3B-XH-A_1x03_P2.50mm_Horizontal"
+			(at 154.94 132.08 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -10516,7 +10536,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 154.94 129.54 0)
+			(at 154.94 132.08 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -10529,6 +10549,9 @@
 		)
 		(pin "2"
 			(uuid "0cf74f97-e5f9-4f5d-a2da-54ad9638c906")
+		)
+		(pin "3"
+			(uuid "54064e2c-f152-42d5-a7e2-0088689eda53")
 		)
 		(instances
 			(project "actuator-node"
@@ -11032,7 +11055,7 @@
 				)
 			)
 		)
-		(property "Value" "4k7"
+		(property "Value" "10k"
 			(at 487.68 147.32 0)
 			(effects
 				(font
@@ -12147,7 +12170,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "9a0364d7-e302-46c1-ae4e-414758034de2")
-		(property "Reference" "#PWR779"
+		(property "Reference" "#PWR620"
 			(at 30 305.64 0)
 			(effects
 				(font
@@ -12170,7 +12193,7 @@
 		(instances
 			(project "actuator-node"
 				(path "/f591a9c0-9da4-4a37-a7ce-2a93192dc18f"
-					(reference "#PWR779")
+					(reference "#PWR620")
 					(unit 1)
 				)
 			)
@@ -12185,7 +12208,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "4bfcc297-bd7c-49aa-a92a-f3ca1935ae27")
-		(property "Reference" "#FLG779"
+		(property "Reference" "#FLG620"
 			(at 42.7 305.64 0)
 			(effects
 				(font
@@ -12208,7 +12231,7 @@
 		(instances
 			(project "actuator-node"
 				(path "/f591a9c0-9da4-4a37-a7ce-2a93192dc18f"
-					(reference "#FLG779")
+					(reference "#FLG620")
 					(unit 1)
 				)
 			)
@@ -12223,7 +12246,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "29336b74-b035-4838-aa0c-fa97fbd860a2")
-		(property "Reference" "#PWR138"
+		(property "Reference" "#PWR687"
 			(at 68.1 305.64 0)
 			(effects
 				(font
@@ -12246,7 +12269,7 @@
 		(instances
 			(project "actuator-node"
 				(path "/f591a9c0-9da4-4a37-a7ce-2a93192dc18f"
-					(reference "#PWR138")
+					(reference "#PWR687")
 					(unit 1)
 				)
 			)
@@ -12261,7 +12284,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "bf71fb3d-3288-4dc1-aa1a-4876f5c67756")
-		(property "Reference" "#FLG138"
+		(property "Reference" "#FLG687"
 			(at 80.8 305.64 0)
 			(effects
 				(font
@@ -12284,7 +12307,7 @@
 		(instances
 			(project "actuator-node"
 				(path "/f591a9c0-9da4-4a37-a7ce-2a93192dc18f"
-					(reference "#FLG138")
+					(reference "#FLG687")
 					(unit 1)
 				)
 			)
@@ -12299,7 +12322,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "ecf85f5b-823c-4130-ad0a-38dd37409de3")
-		(property "Reference" "#PWR816"
+		(property "Reference" "#PWR397"
 			(at 106.2 305.64 0)
 			(effects
 				(font
@@ -12322,7 +12345,7 @@
 		(instances
 			(project "actuator-node"
 				(path "/f591a9c0-9da4-4a37-a7ce-2a93192dc18f"
-					(reference "#PWR816")
+					(reference "#PWR397")
 					(unit 1)
 				)
 			)
@@ -12337,7 +12360,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "0e6819fc-e876-4ba8-a256-12e5df33159a")
-		(property "Reference" "#FLG816"
+		(property "Reference" "#FLG397"
 			(at 118.9 305.64 0)
 			(effects
 				(font
@@ -12360,7 +12383,7 @@
 		(instances
 			(project "actuator-node"
 				(path "/f591a9c0-9da4-4a37-a7ce-2a93192dc18f"
-					(reference "#FLG816")
+					(reference "#FLG397")
 					(unit 1)
 				)
 			)
@@ -12375,7 +12398,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "65e42de7-d21b-4aa1-aa82-f7c01f1f8603")
-		(property "Reference" "#PWR409"
+		(property "Reference" "#PWR291"
 			(at 144.3 305.64 0)
 			(effects
 				(font
@@ -12398,7 +12421,7 @@
 		(instances
 			(project "actuator-node"
 				(path "/f591a9c0-9da4-4a37-a7ce-2a93192dc18f"
-					(reference "#PWR409")
+					(reference "#PWR291")
 					(unit 1)
 				)
 			)
@@ -12413,7 +12436,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "635bd0b6-9e9b-43a3-aa2b-4bce930e84cf")
-		(property "Reference" "#FLG409"
+		(property "Reference" "#FLG291"
 			(at 157 305.64 0)
 			(effects
 				(font
@@ -12436,7 +12459,7 @@
 		(instances
 			(project "actuator-node"
 				(path "/f591a9c0-9da4-4a37-a7ce-2a93192dc18f"
-					(reference "#FLG409")
+					(reference "#FLG291")
 					(unit 1)
 				)
 			)

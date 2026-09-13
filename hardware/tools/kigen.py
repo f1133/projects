@@ -409,7 +409,8 @@ def strip_tokens(body, tags):
     return body
 
 
-def instance_footprint(raw, lib_id, ref, value, at, netmap, tag, name, layer="F.Cu"):
+def instance_footprint(raw, lib_id, ref, value, at, netmap, tag, name,
+                       layer="F.Cu", rot=0):
     """Turn a .kicad_mod body into a placed, netted footprint inside a board."""
     body = raw.strip()
     body = re.sub(r'^\(footprint "[^"]*"', f'(footprint "{lib_id}"', body, count=1)
@@ -424,9 +425,20 @@ def instance_footprint(raw, lib_id, ref, value, at, netmap, tag, name, layer="F.
     body = re.sub(r'\(uuid "[^"]*"\)', fresh, body)
 
     # placement, right after the footprint's layer
+    at_tok = (f'\t(at {num(at[0])} {num(at[1])})\n' if not rot else
+              f'\t(at {num(at[0])} {num(at[1])} {num(rot)})\n')
     body = re.sub(r'(\(layer "[^"]*"\)\n)',
-                  r'\1\t(uuid "' + uid(name, "fpr", tag) + '")\n'
-                  f'\t(at {num(at[0])} {num(at[1])})\n', body, count=1)
+                  r'\1\t(uuid "' + uid(name, "fpr", tag) + '")\n' + at_tok,
+                  body, count=1)
+    if rot:
+        # KiCad stores a pad's angle absolutely, so the footprint's rotation is
+        # folded into each pad; the pad's x/y stay in unrotated local space.
+        def pad_angle(m):
+            head, x, y, a = m.group(1), m.group(2), m.group(3), m.group(4)
+            base = float(a) if a else 0.0
+            return f"{head}(at {x} {y} {num((base + rot) % 360)})"
+        body = re.sub(r'(\(pad "[^"]*"[^\n]*\n\s*)\(at ([-\d.]+) ([-\d.]+)(?: ([-\d.]+))?\)',
+                      pad_angle, body)
 
     body = body.replace('(property "Reference" "REF**"', f'(property "Reference" "{ref}"')
     body = re.sub(r'\(property "Value" "[^"]*"', f'(property "Value" "{value}"', body, count=1)
@@ -512,7 +524,7 @@ def gen_pcb(board, name, parts, nets_resolved, pinmap, libs):
         out.append(f'\t(net {i} "{n}")\n')
 
     # ---- placement ---------------------------------------------------------
-    placed, spilled, regions, fill = place_by_group(
+    placed, spilled, regions, fill, rots = place_by_group(
         parts, libs, board["groups"], W, H, board["edge_groups"],
         pinned=board.get("pinned"), near=board.get("near"))
     print(f"  {name}: courtyards occupy {fill * 100:.0f}% of the board area")
@@ -525,7 +537,8 @@ def gen_pcb(board, name, parts, nets_resolved, pinmap, libs):
         raw = libs.footprint(*p["fp"])
         out.append(instance_footprint(raw, f"{p['fp'][0]}:{p['fp'][1]}", ref,
                                       p["value"], placed[ref],
-                                      pad_net.get(ref, {}), ref, name))
+                                      pad_net.get(ref, {}), ref, name,
+                                      rot=rots.get(ref, 0)))
 
     # ---- group labels ------------------------------------------------------
     for g, (rx1, ry1, rx2, ry2) in sorted(regions.items()):
@@ -777,6 +790,31 @@ def courtyard_boxes(raw):
     return groups
 
 
+def rotate_boxes(boxes, deg):
+    """Rotate axis-aligned boxes by a multiple of 90 degrees, about the origin.
+
+    Same convention as the renderer and as KiCad: +Y maps to +X at 90 degrees,
+    which is what turns a right-angle connector's body to face an edge.
+    """
+    deg = int(deg) % 360
+    if deg == 0:
+        return list(boxes)
+    out = []
+    for x1, y1, x2, y2 in boxes:
+        pts = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+        if deg == 90:
+            pts = [(y, -x) for x, y in pts]
+        elif deg == 180:
+            pts = [(-x, -y) for x, y in pts]
+        elif deg == 270:
+            pts = [(-y, x) for x, y in pts]
+        else:
+            raise ValueError(f"only right-angle rotations are supported, got {deg}")
+        out.append((min(p[0] for p in pts), min(p[1] for p in pts),
+                    max(p[0] for p in pts), max(p[1] for p in pts)))
+    return out
+
+
 def shift(boxes, x, y):
     return [(b[0] + x, b[1] + y, b[2] + x, b[3] + y) for b in boxes]
 
@@ -935,9 +973,13 @@ def place_by_group(parts, libs, groups, W, H, edge_groups, pinned=None, near=Non
                    key=lambda r: (of.get(r, "zz"), -area(r)))
 
     taken, pos, spilled = [], {}, []
-    pinned = pinned or {}
-    for ref, (px, py) in pinned.items():
+    pinned = {k: (v if len(v) > 2 else (v[0], v[1], 0))
+              for k, v in (pinned or {}).items()}
+    rots = {}
+    for ref, (px, py, pr) in pinned.items():
         if ref in shapes:
+            shapes[ref] = rotate_boxes(shapes[ref], pr)
+            rots[ref] = pr
             pos[ref] = (px, py)
             taken.append(shift(shapes[ref], px, py))
 
@@ -1074,4 +1116,4 @@ def place_by_group(parts, libs, groups, W, H, edge_groups, pinned=None, near=Non
         cy += 7.0
         if cy > H:
             cy, cx = 5.0, cx + 12.0
-    return pos, spilled, regions, fill
+    return pos, spilled, regions, fill, rots

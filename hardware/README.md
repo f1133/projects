@@ -21,8 +21,8 @@ boards. Where the two disagree, the build console wins.
 ## Status
 
 Both projects are complete through schematic, footprint placement, netclasses
-and design rules, with no copper routed. `tools/check.py` verifies 286 pad nets
-and 286 schematic stubs against the spec, that every part belongs to exactly one
+and design rules, with no copper routed. `tools/check.py` verifies 296 pad nets
+and 296 schematic stubs against the spec, that every part belongs to exactly one
 functional group, that pinned parts and proximity constraints hold, and that no
 courtyards collide.
 
@@ -46,12 +46,14 @@ footprints are the highest-risk item in both.
 
 ## Fabrication
 
-Both boards target **JLCPCB, 2-layer, 1.6 mm, 1 oz copper**. See
-[`docs/fabrication.md`](docs/fabrication.md) for why, and for the case where
-home etching still makes sense.
+The node board goes to **Lion Circuits, 2-layer, 1.6 mm, 1 oz copper**, and the
+project is pre-set to emit the Protel-extension Gerber names their sample set
+uses. JLCPCB remains the fallback and the rules clear both. See
+[`docs/fabrication.md`](docs/fabrication.md) for the comparison, and for the
+case where home etching still makes sense (it does not, for these boards).
 
 Design rules are set for comfortable hand-routing and hand-soldering, and sit
-well inside JLCPCB's cheapest tier:
+well inside either fab's cheapest tier:
 
 | Rule | Value |
 |---|---|
@@ -62,8 +64,20 @@ well inside JLCPCB's cheapest tier:
 | Silkscreen | 0.15 mm min width, 1 mm min text |
 
 Track widths by netclass are sized from IPC-2221 for 1 oz outer copper at a
-10 °C rise: 0.25 mm ≈ 0.9 A, 0.5 mm ≈ 1.5 A, 1.0 mm ≈ 2.4 A, 2.0 mm ≈ 4.0 A.
+10 °C rise: 0.25 mm ≈ 0.9 A, 1.0 mm ≈ 2.4 A, 1.5 mm ≈ 3.2 A (the motor
+netclass), 2.0 mm ≈ 4.0 A (the 19 V netclass).
 Motor and VIN widths are set from the current figures in the build console.
+
+## What the node can do
+
+[`docs/capabilities.md`](docs/capabilities.md) is the specification: bus range,
+torque and current resolution, loop rates, CAN bandwidth against three joints,
+thermals, and an explicit list of what the board cannot do.
+[`docs/pinmap.md`](docs/pinmap.md) is the MCU pin map, generated from the
+netlist, with the three traps that will bite firmware.
+
+`actuator-node/views/` holds rendered assembly images — top, bottom, copper and
+a zoom on the driver and MCU — with silkscreen, designators and dimensions.
 
 ## Verification
 

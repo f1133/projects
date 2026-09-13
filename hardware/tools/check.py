@@ -147,15 +147,20 @@ def check(name):
             i2 += 1
         seg = seg[:i2 + 1]
         ref = re.search(r'\(property "Reference" "([^"]+)"', seg)
-        at = re.search(r'\n\t\t\(at ([-\d.]+) ([-\d.]+)', seg)
+        at = re.search(r'\n\t\t\(at ([-\d.]+) ([-\d.]+)(?: ([-\d.]+))?\)', seg)
         if not ref or not at:
             continue
-        positions[ref.group(1)] = (float(at.group(1)), float(at.group(2)))
+        positions[ref.group(1)] = (float(at.group(1)), float(at.group(2)),
+                                   float(at.group(3) or 0))
     for p_ in board["parts"]:
         fp_boxes[p_["ref"]] = kigen.courtyard_boxes(libs.footprint(*p_["fp"]))
 
     refs = sorted(r for r in positions if r in fp_boxes)
-    abs_boxes = {r: kigen.shift(fp_boxes[r], *positions[r]) for r in refs}
+    # A rotated footprint keeps its library courtyard, so turn the boxes the
+    # same way before placing them or a right-angle connector reads as if it
+    # still pointed the way the library drew it.
+    abs_boxes = {r: kigen.shift(kigen.rotate_boxes(fp_boxes[r], positions[r][2]),
+                                *positions[r][:2]) for r in refs}
     for a in range(len(refs)):
         for b in range(a + 1, len(refs)):
             ra, rb = refs[a], refs[b]
@@ -208,7 +213,14 @@ def check(name):
                 best = d if best is None else min(best, d)
         return best
 
+    # Default is 12 mm. Tighter where the loop area is the point: the crystal
+    # load caps, and the MCU's 100 nF decoupling, which has to beat the
+    # inductance of the trace it sits on rather than merely be nearby.
     LIMITS = {("Y1", "U1"): 6.0, ("C1", "Y1"): 2.0, ("C2", "Y1"): 2.0}
+    LIMITS.update({(f"C{n}", "U1"): 5.0 for n in (3, 4, 5, 6, 7, 16)})
+    LIMITS[("C13", "U1")] = 8.0    # NRST RC, a DC node - proximity is cosmetic
+    LIMITS[("C17", "U1")] = 8.0    # 1 uF VDDA bulk
+    LIMITS[("C18", "U1")] = 8.0    # 1 uF VREF+ bulk
     for ref, tgt in sorted((board.get("near") or {}).items()):
         if ref not in abs_boxes or tgt not in abs_boxes:
             continue
@@ -218,12 +230,17 @@ def check(name):
             bad(name, f"{ref} sits {d:.1f} mm clear of {tgt}, wanted within "
                       f"{limit:.0f} mm")
 
-    for r, (px, py) in (board.get("pinned") or {}).items():
+    for r, want_at in (board.get("pinned") or {}).items():
+        px, py = want_at[0], want_at[1]
+        pr = want_at[2] if len(want_at) > 2 else 0
         got_at = positions.get(r)
         if got_at is None:
             bad(name, f"pinned part {r} is not on the board")
         elif abs(got_at[0] - px) > 0.01 or abs(got_at[1] - py) > 0.01:
-            bad(name, f"pinned {r} wanted ({px}, {py}) but sits at {got_at}")
+            bad(name, f"pinned {r} wanted ({px}, {py}) but sits at "
+                      f"({got_at[0]}, {got_at[1]})")
+        elif abs(got_at[2] - pr) > 0.01:
+            bad(name, f"pinned {r} wanted {pr} deg but sits at {got_at[2]} deg")
     if "A6" in positions and "A7" in positions:
         d = abs(positions["A7"][0] - positions["A6"][0])
         if abs(d - 130.0) > 0.01:

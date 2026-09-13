@@ -71,7 +71,10 @@ ACTUATOR_PARTS = [
 
     # --- analog dividers ----------------------------------------------------
     R("R3", "100k"),   # Vbus divider top, off the 19 V rail
-    R("R4", "4k7"),    # Vbus divider bottom
+    # 100k/10k puts 19 V at 1.73 V, just over half the 3.3 V ADC span, and
+    # clips at 36 V. 4k7 would read 0.85 V and waste three quarters of the
+    # range on a rail that never goes there.
+    R("R4", "10k"),    # Vbus divider bottom
     R("R5", "4k7"),    # NTC pull-up to 3V3
 
     # --- pull resistors -----------------------------------------------------
@@ -117,16 +120,16 @@ ACTUATOR_PARTS += [C(f"C{n}", "100nF") for n in range(3, 17)]
 ACTUATOR_PARTS += [
     # --- connectors, all in the corners outside the O48 circle ---------------
     dict(ref="J1", value="PHASES", lib=CONN, sym="Conn_01x03",
-         fp=("Connector_JST", "JST_XH_B3B-XH-A_1x03_P2.50mm_Vertical"),
+         fp=("Connector_JST", "JST_XH_S3B-XH-A_1x03_P2.50mm_Horizontal"),
          note="Motor phases A B C."),
     dict(ref="J2", value="CAN IN", lib=CONN, sym="Conn_01x05",
-         fp=("Connector_JST", "JST_XH_B5B-XH-AM_1x05_P2.50mm_Vertical"),
+         fp=("Connector_JST", "JST_XH_S5B-XH-A_1x05_P2.50mm_Horizontal"),
          note="CANH CANL EN 5V GND."),
     dict(ref="J3", value="CAN EXT", lib=CONN, sym="Conn_01x05",
-         fp=("Connector_JST", "JST_XH_B5B-XH-AM_1x05_P2.50mm_Vertical"),
+         fp=("Connector_JST", "JST_XH_S5B-XH-A_1x05_P2.50mm_Horizontal"),
          note="Daisy chain, wired in parallel with J2."),
     dict(ref="J4", value="19V IN", lib=CONN, sym="Conn_01x02",
-         fp=("Connector_JST", "JST_VH_B2P-VH_1x02_P3.96mm_Vertical"),
+         fp=("Connector_JST", "JST_VH_S2P-VH_1x02_P3.96mm_Horizontal"),
          note="Motor bus straight from the brick."),
     dict(ref="J5", value="SWD", lib=CONN, sym="Conn_01x05",
          fp=("Connector_PinHeader_2.54mm", "PinHeader_1x05_P2.54mm_Vertical"),
@@ -135,9 +138,11 @@ ACTUATOR_PARTS += [
          fp=("Connector_PinHeader_2.54mm", "PinHeader_1x04_P2.54mm_Vertical"),
          note="DEVIATION: encoder is motor-mounted, so 3V3 GND SCL SDA leave "
               "on a cable instead of an AS5600 soldered through the board."),
-    dict(ref="J7", value="NTC", lib=CONN, sym="Conn_01x02",
-         fp=("Connector_JST", "JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical"),
-         note="Thermistor bead lives inside the stator, not on the board."),
+    dict(ref="J7", value="NTC", lib=CONN, sym="Conn_01x03",
+         fp=("Connector_JST", "JST_XH_S3B-XH-A_1x03_P2.50mm_Horizontal"),
+         note="Thermistor bead lives inside the stator, not on the board. "
+              "A 3-pin body because no 2-pin XH is stocked; pin 3 is grounded "
+              "so the sense wire can be twisted against its own return."),
     # SPI1 is entirely free - PA4 to PA7 are unused - so the upgrade path to an
     # SPI encoder (AS5047P, MA730, TLE5012B) or an SPI-configured driver costs
     # one header and no re-assignment. SPI2 collides with the driver EN and the
@@ -214,7 +219,7 @@ ACTUATOR_NETS = {
     ],
     "GND": [
         ("J4", "Pin_2"), ("J2", "Pin_5"), ("J3", "Pin_5"), ("J5", "Pin_5"),
-        ("J6", "Pin_2"), ("J7", "Pin_2"), ("J8", "Pin_2"),
+        ("J6", "Pin_2"), ("J7", "Pin_2"), ("J7", "Pin_3"), ("J8", "Pin_2"),
         ("A1", "GND*"), ("C19", "2"),
         ("U1", "VSS*"), ("U1", "VSSA"),
         ("U2", "GND"), ("U2", "Rs"),             # Rs to GND = high-speed mode
@@ -381,10 +386,10 @@ BRAIN_PARTS = [
 
     # --- ports out to the arm ----------------------------------------------
     dict(ref="J2", value="CAN+5V", lib=CONN, sym="Conn_01x05",
-         fp=("Connector_JST", "JST_XH_B5B-XH-AM_1x05_P2.50mm_Vertical"),
+         fp=("Connector_JST", "JST_XH_S5B-XH-A_1x05_P2.50mm_Horizontal"),
          note="CANH CANL EN 5V GND. Same harness the nodes expect."),
     dict(ref="J3", value="19V OUT", lib=CONN, sym="Conn_01x02",
-         fp=("Connector_JST", "JST_VH_B2P-VH_1x02_P3.96mm_Vertical"),
+         fp=("Connector_JST", "JST_VH_S2P-VH_1x02_P3.96mm_Horizontal"),
          note="Motor bus to the arm."),
     dict(ref="J4", value="I2S OUT", lib=CONN, sym="Conn_01x05",
          fp=("Connector_PinHeader_2.54mm", "PinHeader_1x05_P2.54mm_Vertical"),

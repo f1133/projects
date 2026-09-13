@@ -152,7 +152,10 @@ class Canvas:
         self.title, self.subtitle = title, subtitle
 
     def X(self, x):
-        x = (self.bx1 - (x - self.bx0) + self.bx0) if self.mirror else x
+        # Reflect about the view box, not about the origin: X() subtracts bx0
+        # on the way out, so adding it back here shifted the whole bottom
+        # view left by the padding width.
+        x = (self.bx1 - (x - self.bx0)) if self.mirror else x
         return (x - self.bx0) * self.s
 
     def Y(self, y):
@@ -269,7 +272,11 @@ def draw_pad(cv, p, px, py, prot, copper=True):
 def draw_board(cv, pcb, *, silk=True, bodies=True, refs=True, copper=True,
                pour=True, mirror_bottom=False):
     x0, y0, x1, y1 = pcb.extent()
-    cv.raw(f'<rect x="{cv.X(min(x0, x1)):.2f}" y="{cv.Y(y0):.2f}" '
+    # Take the min in SCREEN space, not board space: on a mirrored view X() is
+    # decreasing, so X(min(x0, x1)) is the right-hand edge and the substrate
+    # rect grew off the far side of the board.
+    sx = min(cv.X(x0), cv.X(x1))
+    cv.raw(f'<rect x="{sx:.2f}" y="{cv.Y(y0):.2f}" '
            f'width="{cv.L(abs(x1 - x0)):.2f}" height="{cv.L(y1 - y0):.2f}" '
            f'rx="{cv.L(1.2):.2f}" fill="{C["substrate"]}"/>')
     if pour:
@@ -284,9 +291,12 @@ def draw_board(cv, pcb, *, silk=True, bodies=True, refs=True, copper=True,
         cv.circ(x, y, drill / 2, fill=C["drill"])
     for part in pcb.parts:
         for p in part["pads"]:
+            # KiCad keeps a pad's x/y in unrotated footprint space but stores
+            # its angle absolutely, so the footprint rotation turns the offset
+            # and nothing else - adding it to p["rot"] would count it twice.
             dx, dy = rot(p["x"], p["y"], part["rot"])
             draw_pad(cv, p, part["x"] + dx, part["y"] + dy,
-                     part["rot"] + p["rot"], copper=copper)
+                     p["rot"], copper=copper)
     if bodies:
         for part in pcb.parts:
             pts = [g for g in part["gfx"] if g[-1] == "F.Fab"]
